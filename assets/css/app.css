@@ -185,6 +185,12 @@ body {
   z-index: 1;
   overflow-y: auto;
   min-height: 200px;
+  text-align: left;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* სქროლ ბარების სტილები */
@@ -213,6 +219,7 @@ body {
 
 #editor:focus {
   outline: none;
+  caret-color: #0a246a;
 }
 
 /* რიგაჟოკი ედიტორისთვის */
@@ -609,23 +616,4 @@ body {
   .header-buttons {
     align-self: flex-end;
   }
-
-  /* კურსორის პოზიციის გასასწორებლად ქართული ტექსტისთვის */
-#editor {
-  text-align: left;
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-
-/* უზრუნველვყოფს თანმიმდევრულ ტექსტის განლაგებას */
-.editor-container {
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* უკეთესი ტექსტის შეყვანის გამოცდილებისთვის */
-#editor:focus {
-  caret-color: #0a246a;
-}
 }
