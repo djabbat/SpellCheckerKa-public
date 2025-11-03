@@ -20,8 +20,13 @@
           id="editor" 
           contenteditable="true"
           class="editor"
-          data-placeholder="დაწერეთ ან ჩასვით ქართული ტექსტი აქ..."
-        ></div>
+          data-placeholder="შეიყვანეთ ტექსტი ქართული მართლწერის შესამოწმებლად..."
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          dir="auto">
+      </div>
       </div>
     </div>
 
@@ -69,10 +74,87 @@
   let currentErrors = [];
   let isSpellCheckEnabled = true;
   let suggestionsMenu = null;
+  let isProgrammaticChange = false;
 
   // რეგექსში სპეციალური სიმბოლოების ესკეიპინგის ფუნქცია
   function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // კურსორის დასაწყისში გადატანის ფუნქცია
+  function moveCursorToStart(element) {
+    if (!element) return;
+    element.focus();
+    const range = document.createRange();
+    const selection = window.getSelection();
+    if (element.firstChild) {
+      range.setStart(element.firstChild, 0);
+      range.setEnd(element.firstChild, 0);
+    } else {
+      range.setStart(element, 0);
+      range.setEnd(element, 0);
+    }
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  // კურსორის დასასრულში გადატანის ფუნქცია
+  function moveCursorToEnd(element) {
+    if (!element) return;
+    element.focus();
+    const range = document.createRange();
+    const selection = window.getSelection();
+    if (element.lastChild) {
+      range.setStart(element.lastChild, element.lastChild.textContent.length);
+      range.setEnd(element.lastChild, element.lastChild.textContent.length);
+    } else {
+      range.setStart(element, 0);
+      range.setEnd(element, 0);
+    }
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  // ტექსტში კურსორის პოზიციის გამოთვლა (ინდექსით)
+  function getCaretCharacterOffsetWithin(element) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return 0;
+
+    const range = selection.getRangeAt(0);
+    const preRange = range.cloneRange();
+    preRange.selectNodeContents(element);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    return preRange.toString().length;
+  }
+
+  // კურსორის პოზიციის აღდგენა ტექსტის ინდექსით
+  function setCaretPositionByOffset(element, offset) {
+    const range = document.createRange();
+    const selection = window.getSelection();
+    let current = 0;
+
+    function traverse(node) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const next = current + node.textContent.length;
+        if (offset >= current && offset <= next) {
+          range.setStart(node, offset - current);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return true;
+        }
+        current = next;
+      } else {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          if (traverse(node.childNodes[i])) return true;
+        }
+      }
+      return false;
+    }
+
+    traverse(element);
   }
 
   // ლექსიკონის ჩატვირთვა
@@ -84,7 +166,6 @@
   // ფაილის დამუშავება
   function handleDictionaryFile(files) {
     if (files.length === 0) return;
-    
     const file = files[0];
     if (!file.name.endsWith('.txt')) {
       updateStatus('❌ გთხოვთ აირჩიოთ .txt ფაილი');
@@ -92,9 +173,8 @@
     }
 
     updateStatus('იტვირთება... <span class="loading"></span>');
-    
     const reader = new FileReader();
-    
+
     reader.onload = function(e) {
       try {
         const content = e.target.result;
@@ -105,11 +185,11 @@
         updateStatus('❌ ლექსიკონის ჩატვირთვა ვერ მოხერხდა');
       }
     };
-    
+
     reader.onerror = function() {
       updateStatus('❌ ფაილის წაკითხვა ვერ მოხერხდა');
     };
-    
+
     reader.readAsText(file, 'UTF-8');
   }
 
@@ -117,27 +197,18 @@
   function processDictionaryContent(content) {
     const lines = content.split('\n');
     let loadedWords = 0;
-    
-    // გავასუფთაოთ არსებული ლექსიკონი
+
     georgianDictionary.clear();
-    
     lines.forEach(line => {
       const word = line.trim();
-      
-      // გავფილტროთ ცარიელი ხაზები და კომენტარები
-      if (word && 
-          word.length >= 2 && 
-          !word.startsWith('#') && 
-          /^[ა-ჰ\-]+$/.test(word)) {
-        
+      if (word && word.length >= 2 && !word.startsWith('#') && /^[ა-ჰ\-]+$/.test(word)) {
         georgianDictionary.add(word.toLowerCase());
         loadedWords++;
       }
     });
-    
+
     updateStatus(`ლექსიკონი ჩატვირთულია: ${loadedWords} სიტყვა`);
-    
-    // თუ ტექსტი არსებობს, გადავამოწმოთ
+
     setTimeout(() => {
       const editor = document.getElementById('editor');
       if (editor.textContent.trim()) {
@@ -149,61 +220,68 @@
   // მთავარი შემოწმების ფუნქცია
   async function checkSpelling() {
     if (!isSpellCheckEnabled) return;
-    
+
     const editor = document.getElementById('editor');
     const text = editor.textContent || editor.innerText;
-    
+
     if (!text.trim()) {
       updateStatistics(0, 0);
       displayResults([]);
       return;
     }
-    
+
+    // შევინახოთ კურსორის ინდექსური პოზიცია ტექსტში
+    const savedCaretOffset = getCaretCharacterOffsetWithin(editor);
+
     try {
       const response = await fetch('/api/check', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: text })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
       });
-      
+
       const data = await response.json();
-      
-      // წავშალოთ ძველი ჰაილაითები
       removeHighlights();
-      
       currentErrors = data.errors;
-      
-      // გამოვსახოთ შედეგები
+
       updateStatistics(data.total_words, data.error_count);
       displayResults(currentErrors);
-      
-      // დავამატოთ წითელი ტალღისებრი ხაზები
       highlightErrorsInText();
-      
+
+      // აღვადგინოთ კურსორი იგივე პოზიციაზე
+      setTimeout(() => {
+        setCaretPositionByOffset(editor, savedCaretOffset);
+      }, 10);
+
     } catch (error) {
       console.error('Error checking spelling:', error);
+      setTimeout(() => {
+        setCaretPositionByOffset(editor, savedCaretOffset);
+      }, 10);
     }
   }
 
-  // წითელი ტალღისებრი ხაზების დამატება
+  // წითელი ხაზების დამატება
   function highlightErrorsInText() {
     const editor = document.getElementById('editor');
     const originalContent = editor.innerHTML;
-    
     let content = originalContent;
-    
+
+    content = content.replace(/<span class="misspelled"[^>]*?>([^<]*)<\/span>/gi, '$1');
+
     currentErrors.forEach(error => {
-      const regex = new RegExp(`(?!<[^>]*?)(${escapeRegExp(error.word)})(?![^<]*>)`, 'gi');
-      content = content.replace(regex, 
+      const escapedWord = escapeRegExp(error.word);
+      const regex = new RegExp(`(?!<[^>]*?)(${escapedWord})(?![^<]*>)`, 'gi');
+      content = content.replace(regex,
         `<span class="misspelled" onclick="showSuggestionsMenu('${escapeRegExp(error.word)}', event)" 
               title="დააწკაპუნეთ შემოთავაზებების სანახავად">$1</span>`
       );
     });
-    
+
     if (content !== originalContent) {
+      isProgrammaticChange = true;
       editor.innerHTML = content;
+      setTimeout(() => { isProgrammaticChange = false; }, 50);
     }
   }
 
@@ -211,7 +289,6 @@
   function removeHighlights() {
     const editor = document.getElementById('editor');
     const highlighted = editor.querySelectorAll('.misspelled');
-    
     highlighted.forEach(span => {
       const parent = span.parentNode;
       if (parent) {
@@ -225,39 +302,38 @@
   // შემოთავაზებების მენიუს ჩვენება
   function showSuggestionsMenu(word, event) {
     hideSuggestionsMenu();
-    
     const error = currentErrors.find(e => e.word === word);
     if (!error) return;
-    
+
     suggestionsMenu = document.createElement('div');
     suggestionsMenu.className = 'suggestions-menu';
-    
+
     const rect = event.target.getBoundingClientRect();
     const x = rect.left;
     const y = rect.bottom + window.scrollY;
-    
+
     suggestionsMenu.style.left = x + 'px';
     suggestionsMenu.style.top = y + 'px';
-    
+
     suggestionsMenu.innerHTML = `
       <div class="suggestions-header">
         <span>შემოთავაზებები: "${word}"</span>
         <button class="close-btn" onclick="hideSuggestionsMenu()">×</button>
       </div>
       <div class="suggestions-list">
-        ${error.suggestions.length > 0 ? 
+        ${error.suggestions.length > 0 ?
           error.suggestions.map(suggestion => `
             <div class="suggestion-item" onclick="replaceWord('${word}', '${suggestion}')">
               ${suggestion}
             </div>
-          `).join('') : 
+          `).join('') :
           '<div class="no-suggestions">შემოთავაზებები არ არის</div>'
         }
       </div>
     `;
-    
+
     document.body.appendChild(suggestionsMenu);
-    
+
     setTimeout(() => {
       document.addEventListener('click', function closeMenu(e) {
         if (!suggestionsMenu.contains(e.target) && !e.target.classList.contains('misspelled')) {
@@ -279,23 +355,28 @@
   // სიტყვის ჩანაცვლება
   function replaceWord(oldWord, newWord) {
     const editor = document.getElementById('editor');
+    const savedCaretOffset = getCaretCharacterOffsetWithin(editor);
+
+    isProgrammaticChange = true;
     let content = editor.innerHTML;
-    
     const regex = new RegExp(`<span class="misspelled"[^>]*?>${escapeRegExp(oldWord)}</span>`, 'gi');
     content = content.replace(regex, newWord);
-    
     editor.innerHTML = content;
-    hideSuggestionsMenu();
-    updateStatus(`სიტყვა "${oldWord}" შეიცვალა "${newWord}"-ით`);
-    
-    setTimeout(() => checkSpelling(), 300);
+
+    setTimeout(() => {
+      isProgrammaticChange = false;
+      hideSuggestionsMenu();
+      updateStatus(`სიტყვა "${oldWord}" შეიცვალა "${newWord}"-ით`);
+      setCaretPositionByOffset(editor, savedCaretOffset);
+      setTimeout(() => checkSpelling(), 300);
+    }, 50);
   }
 
-  // მართლწერის შემოწმების ჩართვა/გამორთვა
+  // მართლწერის ჩართვა/გამორთვა
   function toggleSpellCheck() {
     isSpellCheckEnabled = !isSpellCheckEnabled;
     const toggleBtn = document.getElementById('spellCheckToggle');
-    
+
     if (isSpellCheckEnabled) {
       toggleBtn.innerHTML = '<span class="btn-icon">✓</span> მართლწერა: ჩართული';
       checkSpelling();
@@ -311,8 +392,7 @@
   function updateStatistics(totalWords, errorCount) {
     document.getElementById('totalWords').textContent = totalWords;
     document.getElementById('errorCount').textContent = errorCount;
-    
-    const accuracy = totalWords > 0 ? 
+    const accuracy = totalWords > 0 ?
       Math.round(((totalWords - errorCount) / totalWords) * 100) : 100;
     document.getElementById('accuracy').textContent = accuracy + '%';
   }
@@ -320,7 +400,6 @@
   // შედეგების ჩვენება
   function displayResults(errors) {
     const resultsDiv = document.getElementById('results');
-    
     if (errors.length === 0) {
       resultsDiv.innerHTML = `
         <div class="success-state">
@@ -330,15 +409,13 @@
       `;
       return;
     }
-    
+
     let html = `
-      <h3 class="errors-title">
-        📋 ნაპოვნი შეცდომები: ${errors.length}
-      </h3>
+      <h3 class="errors-title">📋 ნაპოვნი შეცდომები: ${errors.length}</h3>
       <div class="errors-list">
     `;
-    
-    errors.forEach((error, index) => {
+
+    errors.forEach(error => {
       html += `
         <div class="error-item">
           <div class="error-word">${error.word}</div>
@@ -355,7 +432,7 @@
         </div>
       `;
     });
-    
+
     html += `</div>`;
     resultsDiv.innerHTML = html;
   }
@@ -365,162 +442,35 @@
     document.getElementById('status').innerHTML = message;
   }
 
-  // ავტომატური შემოწმება აკრეფისას
-  document.getElementById('editor').addEventListener('input', function() {
-    if (isSpellCheckEnabled) {
-      clearTimeout(this.checkTimeout);
-      this.checkTimeout = setTimeout(() => checkSpelling(), 500);
-    }
-  });
-
-// საწყისი ტექსტის ჩასმა
-function insertSampleText() {
+  // საწყისი ტექსტის ჩასმა
+  function insertSampleText() {
     const sampleText = `ჩაწერე ტექსტი.`;
     const editor = document.getElementById('editor');
-    
-    // ჯერ გავასუფთაოთ ედიტორი
-    editor.innerHTML = '';
-    
-    // დავამატოთ ტექსტი
-    const textNode = document.createTextNode(sampleText);
-    editor.appendChild(textNode);
-    
-    // კურსორის დასაწყისში გადატანა
+    isProgrammaticChange = true;
+    editor.textContent = sampleText;
+
     setTimeout(() => {
-        moveCursorToStart(editor);
-        checkSpelling();
+      isProgrammaticChange = false;
+      moveCursorToEnd(editor);
+      checkSpelling();
     }, 100);
-}
+  }
 
-// კურსორის დასაწყისში გადატანის ფუნქცია
-function moveCursorToStart(element) {
-    element.focus();
-    
-    const range = document.createRange();
-    const selection = window.getSelection();
-    
-    range.setStart(element, 0);
-    range.setEnd(element, 0);
-    range.collapse(true);
-    
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
+  // ინიციალიზაცია
+  document.addEventListener('DOMContentLoaded', function() {
+    const basicWords = ["ჩაწერე"];
+    basicWords.forEach(word => georgianDictionary.add(word.toLowerCase()));
 
-// კურსორის დასასრულში გადატანის ფუნქცია
-function moveCursorToEnd(element) {
-    element.focus();
-    
-    const range = document.createRange();
-    const selection = window.getSelection();
-    
-    range.selectNodeContents(element);
-    range.collapse(false); // false = დასასრულში
-    
-    selection.removeAllRanges();
-    selection.addRange(range);
-}
-
-// ინიციალიზაცია - ჩავტვირთოთ ძირითადი ლექსიკონი
-document.addEventListener('DOMContentLoaded', function() {
-    // დაამატოთ ძირითადი სიტყვები
-    const basicWords = [
-        "ჩაწერე"
-    ];
-    
-    basicWords.forEach(word => {
-        georgianDictionary.add(word.toLowerCase());
-    });
-    
-    updateStatus('მზადაა მუშაობისთვის');
-    
-    // დავამატოთ event listener-ები ედიტორისთვის
     const editor = document.getElementById('editor');
-    
-    // დაივიწყოს კურსორის პოზიცია input event-ის დროს
-    let isProgrammaticChange = false;
-    
-    editor.addEventListener('input', function(e) {
-        if (isProgrammaticChange) return;
-        
-        if (isSpellCheckEnabled) {
-            clearTimeout(this.checkTimeout);
-            this.checkTimeout = setTimeout(() => checkSpelling(), 500);
-        }
+    editor.addEventListener('input', function() {
+      if (isProgrammaticChange) return;
+      if (isSpellCheckEnabled) {
+        clearTimeout(this.checkTimeout);
+        this.checkTimeout = setTimeout(() => checkSpelling(), 500);
+      }
     });
-    
-    // დავიცვათ კურსორის პოზიცია spell check-ის დროს
-    const originalCheckSpelling = checkSpelling;
-    checkSpelling = function() {
-        // შევინახოთ კურსორის პოზიცია
-        const selection = window.getSelection();
-        let cursorPosition = null;
-        
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            cursorPosition = {
-                startContainer: range.startContainer,
-                startOffset: range.startOffset,
-                endContainer: range.endContainer,
-                endOffset: range.endOffset
-            };
-        }
-        
-        // გავუშვათ ორიგინალური spell check
-        originalCheckSpelling();
-        
-        // აღვადგინოთ კურსორის პოზიცია
-        if (cursorPosition) {
-            setTimeout(() => {
-                try {
-                    const newRange = document.createRange();
-                    newRange.setStart(cursorPosition.startContainer, cursorPosition.startOffset);
-                    newRange.setEnd(cursorPosition.endContainer, cursorPosition.endOffset);
-                    
-                    selection.removeAllRanges();
-                    selection.addRange(newRange);
-                } catch (e) {
-                    // თუ კურსორის პოზიციის აღდგენა ვერ მოხერხდა, კურსორი დასასრულში გადავიტანოთ
-                    moveCursorToEnd(editor);
-                }
-            }, 10);
-        }
-    };
-    
-    insertSampleText();
-});
 
-// ინიციალიზაცია - ჩავტვირთოთ ძირითადი ლექსიკონი
-document.addEventListener('DOMContentLoaded', function() {
-    // დაამატოთ ძირითადი სიტყვები
-    const basicWords = [
-        "ჩაწერე"
-    ];
-    
-    basicWords.forEach(word => {
-        georgianDictionary.add(word.toLowerCase());
-    });
-    
     updateStatus('მზადაა მუშაობისთვის');
-    
-    // დავამატოთ event listener ედიტორის ფოკუსირებისთვის
-    const editor = document.getElementById('editor');
-    editor.addEventListener('focus', function() {
-        // თუ ედიტორი ცარიელია, კურსორი დასაწყისში დარჩეს
-        if (!this.textContent.trim()) {
-            setTimeout(() => {
-                const range = document.createRange();
-                const selection = window.getSelection();
-                
-                range.setStart(this, 0);
-                range.collapse(true);
-                
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }, 50);
-        }
-    });
-    
     insertSampleText();
-});
+  });
 </script>
