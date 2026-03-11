@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ScheckerGe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      font-family: "Noto Sans Georgian", "Sylfaen", Tahoma, sans-serif;
+      font-size: 12px;
+      background: #d4d0c8;
+      color: #000;
+    }
+
+    .header {
+      background: linear-gradient(to right, #000080, #1084d0);
+      color: #fff;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header h1 {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .header .subtitle {
+      font-size: 10px;
+      opacity: 0.85;
+    }
+
+    .section {
+      padding: 8px 10px;
+      border-bottom: 1px solid #808080;
+    }
+
+    .section label {
+      display: block;
+      margin-bottom: 3px;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .section input[type=text] {
+      width: 100%;
+      padding: 3px 5px;
+      border: 2px solid;
+      border-color: #808080 #fff #fff #808080;
+      background: #fff;
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .section .hint {
+      margin-top: 3px;
+      font-size: 10px;
+      color: #666;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 4px;
+      padding: 8px 10px;
+    }
+
+    .btn {
+      flex: 1;
+      background: #d4d0c8;
+      border: 2px solid;
+      border-color: #ffffff #808080 #808080 #ffffff;
+      padding: 4px 6px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: center;
+    }
+
+    .btn:hover { background: #c0c0c0; }
+    .btn:active { border-color: #808080 #ffffff #ffffff #808080; }
+    .btn.primary { background: #000080; color: #fff; border-color: #1084d0 #000040 #000040 #1084d0; }
+    .btn.primary:hover { background: #0000aa; }
+
+    .shortcut-row {
+      padding: 4px 10px 8px;
+      font-size: 10px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .shortcut-row kbd {
+      background: #c0c0c0;
+      border: 1px solid #808080;
+      padding: 1px 4px;
+      font-size: 10px;
+      font-family: monospace;
+    }
+
+    #status-bar {
+      background: #ece9d8;
+      padding: 4px 10px;
+      font-size: 10px;
+      color: #333;
+      border-top: 1px solid #808080;
+      min-height: 20px;
+    }
+
+    .status-ok   { color: #006400; }
+    .status-err  { color: #c00; }
+    .status-info { color: #000080; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="h1">ScheckerGe</div>
+      <div class="subtitle">ქართული მართლწერის შემოწმება</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <label for="server-url">სერვერის URL</label>
+    <input type="text" id="server-url" placeholder="https://scheckerge.ge/api/check">
+    <div class="hint">ლოკალური: http://localhost:4000/api/check</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" id="btn-test">🔌 ტესტი</button>
+    <button class="btn primary" id="btn-save">💾 შენახვა</button>
+  </div>
+
+  <div class="shortcut-row">
+    <kbd>Ctrl+Shift+K</kbd> — შეამოწმე მართლწერა<br>
+    Google Docs: პანელი გამოჩნდება ავტომატურად.<br>
+    სხვა საიტები: კლავიატურის მალე ბმული ან კონტ. მენიუ.
+  </div>
+
+  <div id="status-bar">მზადაა</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

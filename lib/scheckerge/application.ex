@@ -13,8 +13,7 @@ defmodule Scheckerge.Application do
       {Phoenix.PubSub, name: Scheckerge.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Scheckerge.Finch},
-      # Start a worker by calling: Scheckerge.Worker.start_link(arg)
-      # {Scheckerge.Worker, arg},
+      Scheckerge.Dictionary,
       # Start to serve requests, typically the last entry
       ScheckergeWeb.Endpoint
     ]

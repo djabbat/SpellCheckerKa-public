@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "name": "ScheckerGe — ქართული მართლწერა",
+  "version": "1.0.0",
+  "description": "ქართული მართლწერის შემოწმება ნებისმიერ საიტზე და Google Docs-ში",
+
+  "permissions": ["storage", "contextMenus"],
+  "host_permissions": ["<all_urls>"],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/*"],
+      "js": ["content_gdocs.js"],
+      "css": ["panel.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["https://docs.google.com/*"],
+      "js": ["content_generic.js"],
+      "css": ["panel.css"],
+      "run_at": "document_end"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "ScheckerGe"
+  },
+
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "commands": {
+    "check-spelling": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
+      },
+      "description": "შეამოწმე მართლწერა"
+    }
+  }
+}

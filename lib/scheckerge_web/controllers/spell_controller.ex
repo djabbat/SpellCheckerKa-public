@@ -1,77 +1,65 @@
 defmodule ScheckergeWeb.SpellController do
   use ScheckergeWeb, :controller
 
+  alias Scheckerge.Dictionary
+
+  # ─────────────────────────────────────────────
+  # CORS — разрешаем запросы из browser extension
+  # ─────────────────────────────────────────────
+
+  def options(conn, _params) do
+    conn
+    |> put_cors_headers()
+    |> send_resp(204, "")
+  end
+
   def check(conn, %{"text" => text}) do
-    # მართლწერის შემოწმების ლოგიკა
-    words = extract_words(text)
+    words  = extract_words(text)
     errors = find_errors(words)
 
-    json(conn, %{
-      words: words,
-      errors: errors,
+    conn
+    |> put_cors_headers()
+    |> json(%{
+      words:       words,
+      errors:      errors,
       total_words: length(words),
       error_count: length(errors),
-      accuracy: calculate_accuracy(length(words), length(errors))
+      accuracy:    calculate_accuracy(length(words), length(errors))
     })
+  end
+
+  # ─────────────────────────────────────────────
+  # Private
+  # ─────────────────────────────────────────────
+
+  defp put_cors_headers(conn) do
+    conn
+    |> put_resp_header("access-control-allow-origin",  "*")
+    |> put_resp_header("access-control-allow-methods", "POST, OPTIONS")
+    |> put_resp_header("access-control-allow-headers", "content-type")
   end
 
   defp extract_words(text) do
     text
-    |> String.split(~r/[\s\.,!?;:()\[\]{}"']+/)
+    |> String.split(~r/[\s\.,!?;:()\[\]{}"'«»—–\-]+/)
     |> Enum.filter(&(&1 != ""))
-    |> Enum.map(&String.replace(&1, ~r/[^ა-ჰ\-]/u, ""))
+    |> Enum.map(&String.replace(&1, ~r/[^ა-ჰ]/u, ""))
     |> Enum.filter(&(&1 != ""))
   end
 
   defp find_errors(words) do
-    dictionary = load_dictionary()
-
     words
     |> Enum.uniq()
     |> Enum.filter(fn word ->
-      String.length(word) > 1 && !MapSet.member?(dictionary, String.downcase(word))
+      String.length(word) > 1 && !Dictionary.member?(String.downcase(word))
     end)
     |> Enum.map(fn word ->
       %{
-        word: word,
-        suggestions: get_simple_suggestions(word, dictionary),
-        count: Enum.count(words, &(&1 == word))
+        word:        word,
+        suggestions: Dictionary.suggestions(String.downcase(word)),
+        count:       Enum.count(words, &(&1 == word))
       }
     end)
-  end
-
-  defp load_dictionary do
-    # ძირითადი ლექსიკონის ჩატვირთვა
-    basic_words = [
-      "ენა", "ქართული", "მართლწერა", "შემოწმება", "დოკუმენტი", "ტექსტი",
-      "პროგრამა", "კომპიუტერი", "ინტერნეტი", "გამოყენება", "მარტივი", "სწრაფი",
-      "სწორი", "არასწორი", "შეცდომა", "შემოთავაზება", "წითელი", "ტალღისებრი",
-      "ხაზი", "გასმა", "არის", "აქვს", "შეუძლია", "უნდა", "შეიძლება", "ვარ",
-      "არი", "იყო", "მიდის", "მოდის", "ადამიანი", "ოჯახი", "სკოლა", "უნივერსიტეტი",
-      "სტუდენტი", "მასწავლებელი", "ქვეყანა", "ქალაქი", "კარგი", "ცუდი", "დიდი",
-      "პატარა", "ახალი", "ძველი", "სასიამოვნო", "საინტერესო", "და", "ან", "მაგრამ",
-      "რომ", "თუ", "ეს", "რაც", "ვინ", "რა", "სად", "როდის", "როგორ", "რატომ"
-    ]
-
-    basic_words
-    |> Enum.map(&String.downcase/1)
-    |> MapSet.new()
-  end
-
-  defp get_simple_suggestions(word, dictionary) do
-    clean_word = String.downcase(word)
-    all_words = MapSet.to_list(dictionary)
-
-    # მარტივი ფილტრაცია პირველი ასოს და სიგრძის მიხედვით
-    suggestions =
-      all_words
-      |> Enum.filter(fn dict_word ->
-        String.first(dict_word) == String.first(clean_word) &&
-        abs(String.length(dict_word) - String.length(clean_word)) <= 2
-      end)
-      |> Enum.take(5)
-
-    suggestions
   end
 
   defp calculate_accuracy(total_words, error_count) do

@@ -23,6 +23,7 @@ defmodule ScheckergeWeb.Router do
   scope "/api", ScheckergeWeb do
     pipe_through :api
 
-    post "/check", SpellController, :check
+    post    "/check", SpellController, :check
+    options "/check", SpellController, :options
   end
 end
