@@ -18,9 +18,10 @@ defmodule Scheckerge.Dictionary do
 
   alias Scheckerge.Morphology
 
-  @table       :ge_dictionary
-  @index_table :ge_dictionary_index
-  @dict_path   "priv/static/dictionaris/ge.txt"
+  @table            :ge_dictionary
+  @index_table      :ge_dictionary_index
+  @dict_path        "priv/static/dictionaris/ge.txt"
+  @user_words_path  "priv/static/dictionaris/user_words.txt"
 
   # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,34 @@ defmodule Scheckerge.Dictionary do
   def member?(word) do
     w = String.downcase(word)
     :ets.member(@table, w) or Morphology.valid?(w)
+  end
+
+  @doc """
+  Add a word to the live dictionary (ETS) and persist it to user_words.txt
+  so it survives server restarts.  Only Georgian Mkhedruli words accepted.
+  """
+  def add_word(word) do
+    w = word |> String.trim() |> String.downcase()
+
+    if String.match?(w, ~r/^[ა-ჰ]{2,}$/) do
+      # Insert into main lookup table
+      :ets.insert(@table, {w})
+
+      # Update candidate index for this word's (first_char, length) bucket
+      key = {String.first(w), String.length(w)}
+      case :ets.lookup(@index_table, key) do
+        [{^key, words}] -> :ets.insert(@index_table, {key, [w | words]})
+        []              -> :ets.insert(@index_table, {key, [w]})
+      end
+
+      # Persist — append to user_words.txt (create if absent)
+      path = Application.app_dir(:scheckerge, @user_words_path)
+      File.write(path, w <> "\n", [:append])
+
+      :ok
+    else
+      {:error, :invalid_word}
+    end
   end
 
   @doc """
@@ -76,8 +105,10 @@ defmodule Scheckerge.Dictionary do
   def init(_) do
     :ets.new(@table,       [:named_table, :set, :public, read_concurrency: true])
     :ets.new(@index_table, [:named_table, :set, :public, read_concurrency: true])
-    path = Application.app_dir(:scheckerge, @dict_path)
+    path       = Application.app_dir(:scheckerge, @dict_path)
+    user_path  = Application.app_dir(:scheckerge, @user_words_path)
     load_file(path)
+    load_file(user_path)   # user additions layered on top (file may not exist yet)
     build_index()
     {:ok, %{}}
   end

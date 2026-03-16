@@ -1,641 +1,571 @@
-// --- Phoenix LiveView სტანდარტული ნაწილი ---
+// --- fflate: tiny zip library for .docx read/write ---
+import { unzipSync, zipSync, strToU8, strFromU8 } from "fflate"
+
+// --- Phoenix LiveView boilerplate ---
 import "phoenix_html"
 import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
-let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken }
 })
 
-topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
-window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
-window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
-
+topbar.config({ barColors: { 0: "#dc2626" }, shadowColor: "rgba(0,0,0,.3)" })
+window.addEventListener("phx:page-loading-start", () => topbar.show(300))
+window.addEventListener("phx:page-loading-stop", () => topbar.hide())
 liveSocket.connect()
 window.liveSocket = liveSocket
-// --- Phoenix ნაწილი დასრულდა ---
 
-// ==========================
-// გლობალური ცვლადები და ფუნქციები
-// ==========================
+// ─── State ──────────────────────────────────────────────────────────────
+let currentErrors = []
+let userDictionary = new Set()
+let checkTimer = null
+let activeRequest = null   // AbortController for in-flight fetch
 
-// ძირითადი ლექსიკონი
-let georgianDictionary = new Set();
-let currentErrors = [];
-let isSpellCheckEnabled = true;
-let suggestionsMenu = null;
-let isProgrammaticChange = false;
-let isUserTyping = false;
-let lastCaretPosition = 0;
-let suggestionsMenuClickListener = null;
-let skipNextCursorRestore = false;
+// ─── Utilities ──────────────────────────────────────────────────────────
 
-// რეგექსში სპეციალური სიმბოლოების ესკეიპინგის ფუნქცია
-window.escapeRegExp = function(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function esc(str) {
+  const el = document.createElement("div")
+  el.textContent = String(str)
+  return el.innerHTML
 }
 
-// HTML სიმბოლოების ესკეიპინგი XSS-ისგან დასაცავად
-window.escapeHtml = function(str) {
-  const el = document.createElement('div');
-  el.textContent = String(str);
-  return el.innerHTML;
+function setStatus(msg) {
+  const el = document.getElementById("status")
+  if (el) el.innerHTML = msg
 }
 
-// კურსორის დასაწყისში გადატანის ფუნქცია
-window.moveCursorToStart = function(element) {
-  if (!element) return;
-  element.focus();
-  const range = document.createRange();
-  const selection = window.getSelection();
-  if (element.firstChild) {
-    range.setStart(element.firstChild, 0);
-    range.setEnd(element.firstChild, 0);
-  } else {
-    range.setStart(element, 0);
-    range.setEnd(element, 0);
+// Adaptive debounce: longer delay for larger texts so we don't spam the server
+function debounceDelay(len) {
+  if (len <  2_000) return  500
+  if (len < 10_000) return  900
+  if (len < 50_000) return 1500
+  return 2500
+}
+
+// ─── Stats ──────────────────────────────────────────────────────────────
+
+function updateStats(total, errors) {
+  const wordsEl  = document.getElementById("stat-words")
+  const errorsEl = document.getElementById("stat-errors")
+  const accEl    = document.getElementById("stat-accuracy")
+
+  if (wordsEl)  wordsEl.textContent = total
+  if (errorsEl) {
+    errorsEl.textContent = errors
+    errorsEl.className = errors > 0 ? "c-red" : "c-green"
   }
-  range.collapse(true);
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-
-// კურსორის დასასრულში გადატანის ფუნქცია
-window.moveCursorToEnd = function(element) {
-  if (!element) return;
-  element.focus();
-  const range = document.createRange();
-  const selection = window.getSelection();
-  if (element.lastChild) {
-    range.setStart(element.lastChild, element.lastChild.textContent.length);
-    range.setEnd(element.lastChild, element.lastChild.textContent.length);
-  } else {
-    range.setStart(element, 0);
-    range.setEnd(element, 0);
-  }
-  range.collapse(false);
-  selection.removeAllRanges();
-  selection.addRange(range);
-}
-
-// ტექსტში კურსორის პოზიციის გამოთვლა (ინდექსით)
-window.getCaretCharacterOffsetWithin = function(element) {
-  const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0) return 0;
-
-  const range = selection.getRangeAt(0);
-  const preRange = range.cloneRange();
-  preRange.selectNodeContents(element);
-  preRange.setEnd(range.startContainer, range.startOffset);
-  return preRange.toString().length;
-}
-
-// კურსორის პოზიციის აღდგენა ტექსტის ინდექსით
-window.setCaretPositionByOffset = function(element, offset) {
-  if (!element || skipNextCursorRestore) return;
-  
-  const range = document.createRange();
-  const selection = window.getSelection();
-  let current = 0;
-  let found = false;
-
-  function traverse(node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const textLength = node.textContent ? node.textContent.length : 0;
-      const next = current + textLength;
-      if (offset >= current && offset <= next && !found) {
-        const position = Math.min(offset - current, textLength);
-        range.setStart(node, position);
-        range.collapse(true);
-        found = true;
-        return true;
-      }
-      current = next;
-    } else {
-      for (let i = 0; i < node.childNodes.length && !found; i++) {
-        traverse(node.childNodes[i]);
-      }
-    }
-    return found;
-  }
-
-  traverse(element);
-  
-  if (found) {
-    selection.removeAllRanges();
-    selection.addRange(range);
+  const pct = total > 0 ? Math.round(((total - errors) / total) * 100) : 100
+  if (accEl) {
+    accEl.textContent  = pct + "%"
+    accEl.className = pct >= 95 ? "c-green" : pct >= 75 ? "c-warn" : "c-red"
   }
 }
 
-// ლექსიკონის ჩატვირთვა
-window.loadExternalDictionary = async function() {
-  const fileInput = document.getElementById('dictionaryFile');
-  fileInput.click();
-}
+// ─── Spell check ────────────────────────────────────────────────────────
 
-// ფაილის დამუშავება
-window.handleDictionaryFile = function(files) {
-  if (files.length === 0) return;
-  const file = files[0];
-  if (!file.name.endsWith('.txt')) {
-    updateStatus('❌ გთხოვთ აირჩიოთ .txt ფაილი');
-    return;
-  }
+async function checkSpelling () {
+  const input = document.getElementById("input")
+  const text  = input ? input.value : ""
 
-  updateStatus('იტვირთება... <span class="loading"></span>');
-  const reader = new FileReader();
+  if (!text.trim()) { resetUI(); return }
 
-  reader.onload = function(e) {
-    try {
-      const content = e.target.result;
-      processDictionaryContent(content);
-      updateStatus('✅ ლექსიკონი წარმატებით ჩაიტვირთა');
-    } catch (error) {
-      console.error('Error loading dictionary:', error);
-      updateStatus('❌ ლექსიკონის ჩატვირთვა ვერ მოხერხდა');
-    }
-  };
+  // Cancel any pending request
+  if (activeRequest) { activeRequest.abort(); activeRequest = null }
 
-  reader.onerror = function() {
-    updateStatus('❌ ფაილის წაკითხვა ვერ მოხერხდა');
-  };
+  const controller = new AbortController()
+  activeRequest = controller
 
-  reader.readAsText(file, 'UTF-8');
-}
-
-// ლექსიკონის კონტენტის დამუშავება
-function processDictionaryContent(content) {
-  const lines = content.split('\n');
-  let loadedWords = 0;
-
-  georgianDictionary.clear();
-  lines.forEach(line => {
-    const word = line.trim();
-    if (word && word.length >= 2 && !word.startsWith('#') && /^[ა-ჰ\-]+$/.test(word)) {
-      georgianDictionary.add(word.toLowerCase());
-      loadedWords++;
-    }
-  });
-
-  updateStatus(`ლექსიკონი ჩატვირთულია: ${loadedWords} სიტყვა`);
-
-  setTimeout(() => {
-    const editor = document.getElementById('editor');
-    if (editor.textContent.trim()) {
-      checkSpelling();
-    }
-  }, 100);
-}
-
-// მთავარი შემოწმების ფუნქცია
-window.checkSpelling = async function() {
-  if (!isSpellCheckEnabled) return;
-
-  const editor = document.getElementById('editor');
-  const text = editor.textContent || editor.innerText;
-
-  if (!text.trim()) {
-    updateStatistics(0, 0);
-    displayResults([]);
-    return;
-  }
-
-  // შევინახოთ კურსორის ინდექსური პოზიცია ტექსტში
-  const savedCaretOffset = getCaretCharacterOffsetWithin(editor);
-  lastCaretPosition = savedCaretOffset;
+  const chars = text.length
+  setStatus(`შემოწმება... ${chars.toLocaleString()} სიმბ. <span class="spinner"></span>`)
 
   try {
-    const response = await fetch('/api/check', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text })
-    });
+    const res = await fetch("/api/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+      signal: controller.signal
+    })
+    activeRequest = null
 
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
+    if (!res.ok) throw new Error("HTTP " + res.status)
+    const data = await res.json()
 
-    const data = await response.json();
-    currentErrors = data.errors;
+    currentErrors = data.errors || []
+    updateStats(data.total_words, data.error_count)
+    renderResults(currentErrors, data.typography || [], data.stopwords || [])
+    updateMirror(text, currentErrors)
+    setStatus(`შემოწმება დასრულდა — ${data.total_words} სიტყვა`)
 
-    updateStatistics(data.total_words, data.error_count);
-    displayResults(currentErrors);
-    
-    // ჰაილაითინგი
-    isProgrammaticChange = true;
-    highlightErrorsInText();
-    isProgrammaticChange = false;
-
-    // აღვადგინოთ კურსორი იგივე პოზიციაზე, მხოლოდ თუ არ გვინდა რომ გამოვტოვოთ
-    if (!skipNextCursorRestore) {
-      setTimeout(() => {
-        const editor = document.getElementById('editor');
-        setCaretPositionByOffset(editor, savedCaretOffset);
-      }, 10);
-    }
-
-  } catch (error) {
-    console.error('Error checking spelling:', error);
-    // ლოკალური შემოწმება თუ API ვერ მუშაობს
-    performLocalSpellCheck(text, savedCaretOffset);
+  } catch (err) {
+    if (err.name === "AbortError") return  // intentionally cancelled — ignore
+    activeRequest = null
+    setStatus("❌ სერვერთან კავშირის შეცდომა")
+    console.error("Spell check error:", err)
   }
 }
 
-// ლოკალური შემოწმება
-function performLocalSpellCheck(text, savedCaretOffset) {
-  const words = text.split(/\s+/).filter(word => word.length > 0);
-  const errors = [];
-  
-  words.forEach(word => {
-    const cleanWord = word.replace(/[.,!?;:()]/g, '').toLowerCase();
-    if (cleanWord.length > 1 && !georgianDictionary.has(cleanWord)) {
-      errors.push({
-        word: cleanWord,
-        count: 1,
-        suggestions: []
-      });
-    }
-  });
-  
-  currentErrors = errors;
-  updateStatistics(words.length, errors.length);
-  displayResults(errors);
-  
-  isProgrammaticChange = true;
-  highlightErrorsInText();
-  isProgrammaticChange = false;
-  
-  if (!skipNextCursorRestore) {
-    setTimeout(() => {
-      const editor = document.getElementById('editor');
-      setCaretPositionByOffset(editor, savedCaretOffset);
-    }, 10);
-  }
-}
+// ─── Results rendering ──────────────────────────────────────────────────
 
-// ჰაილაითინგი - გამოსწორებული ვერსია
-function highlightErrorsInText() {
-  const editor = document.getElementById('editor');
-  if (!editor) return;
+function renderResults(errors, typography, stopwords) {
+  const container = document.getElementById("results")
+  if (!container) return
 
-  // გამოვიყენოთ textContent რომ მივიღოთ მხოლოდ ტექსტი HTML-ის გარეშე
-  const originalText = editor.textContent || '';
-  
-  if (!originalText.trim()) {
-    removeHighlights();
-    return;
-  }
-
-  // შევინახოთ მიმდინარე HTML სანამ ცვლილებებს შევიტანთ
-  const currentHTML = editor.innerHTML;
-  
-  // დავიწყოთ სუფთა ტექსტიდან და დავამატოთ ჰაილაითები
-  let newHTML = currentHTML;
-  
-  // წავშალოთ ყველა არსებული misspelled span
-  newHTML = newHTML.replace(/<span class="misspelled"[^>]*?>([^<]*)<\/span>/gi, '$1');
-  
-  // დავამატოთ ახალი ჰაილაითები თითოეული შეცდომისთვის
-  currentErrors.forEach(error => {
-    const escapedWord = escapeRegExp(error.word);
-    // გამოვიყენოთ უფრო ზუსტი regex რომ მხოლოდ სრული სიტყვები მოიძებნოს
-    const regex = new RegExp(`(^|\\s|>|\\(|\\[)(${escapedWord})(?=\\s|$|[\\.\\,\\!\\?\\;\\:\\)\\]\\>])`, 'gi');
-    
-    newHTML = newHTML.replace(regex, (match, before, word) => {
-      return before + `<span class="misspelled" data-word="${escapeHtml(error.word)}">${escapeHtml(word)}</span>`;
-    });
-  });
-
-  // მხოლოდ შეცვლილი კონტენტის ჩასმა
-  if (newHTML !== currentHTML) {
-    editor.innerHTML = newHTML;
-  }
-}
-
-// ჰაილაითების წაშლა
-function removeHighlights() {
-  const editor = document.getElementById('editor');
-  if (!editor) return;
-  
-  const highlighted = editor.querySelectorAll('.misspelled');
-  highlighted.forEach(span => {
-    const parent = span.parentNode;
-    if (parent) {
-      parent.replaceChild(document.createTextNode(span.textContent), span);
-    }
-  });
-}
-
-// შემოთავაზებების მენიუს ჩვენება
-window.showSuggestionsMenu = function(word, event) {
-  hideSuggestionsMenu();
-  const error = currentErrors.find(e => e.word === word);
-  if (!error) return;
-
-  suggestionsMenu = document.createElement('div');
-  suggestionsMenu.className = 'suggestions-menu';
-
-  const rect = event.target.getBoundingClientRect();
-  const scrollX = window.scrollX || window.pageXOffset;
-  const scrollY = window.scrollY || window.pageYOffset;
-
-  suggestionsMenu.style.left = (rect.left + scrollX) + 'px';
-  suggestionsMenu.style.top  = (rect.bottom + scrollY) + 'px';
-
-  // Header — textContent უსაფრთხოდ ჩასმისთვის
-  const header = document.createElement('div');
-  header.className = 'suggestions-header';
-  const titleSpan = document.createElement('span');
-  titleSpan.textContent = `შემოთავაზებები: "${word}"`;
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'close-btn';
-  closeBtn.textContent = '×';
-  closeBtn.addEventListener('click', () => hideSuggestionsMenu());
-  header.appendChild(titleSpan);
-  header.appendChild(closeBtn);
-
-  // Suggestions list
-  const list = document.createElement('div');
-  list.className = 'suggestions-list';
-
-  if (error.suggestions.length > 0) {
-    error.suggestions.forEach(suggestion => {
-      const item = document.createElement('div');
-      item.className = 'suggestion-item';
-      item.textContent = suggestion;
-      item.addEventListener('click', () => replaceWord(word, suggestion));
-      list.appendChild(item);
-    });
-  } else {
-    const noSug = document.createElement('div');
-    noSug.className = 'no-suggestions';
-    noSug.textContent = 'შემოთავაზებები არ არის';
-    list.appendChild(noSug);
-  }
-
-  suggestionsMenu.appendChild(header);
-  suggestionsMenu.appendChild(list);
-  document.body.appendChild(suggestionsMenu);
-
-  // Event listener-ის დამატება მენიუს დასახურად
-  setTimeout(() => {
-    suggestionsMenuClickListener = function(e) {
-      if (!suggestionsMenu) {
-        document.removeEventListener('click', suggestionsMenuClickListener);
-        return;
-      }
-      if (!suggestionsMenu.contains(e.target) && !e.target.classList.contains('misspelled')) {
-        hideSuggestionsMenu();
-      }
-    };
-    document.addEventListener('click', suggestionsMenuClickListener);
-  }, 10);
-}
-
-// მენიუს დამალვა
-window.hideSuggestionsMenu = function() {
-  if (suggestionsMenu) {
-    suggestionsMenu.remove();
-    suggestionsMenu = null;
-  }
-  if (suggestionsMenuClickListener) {
-    document.removeEventListener('click', suggestionsMenuClickListener);
-    suggestionsMenuClickListener = null;
-  }
-}
-
-// სიტყვის ჩანაცვლება
-window.replaceWord = function(oldWord, newWord) {
-  const editor = document.getElementById('editor');
-  const savedCaretOffset = getCaretCharacterOffsetWithin(editor);
-
-  isProgrammaticChange = true;
-  
-  const currentHTML = editor.innerHTML;
-  const regex = new RegExp(`<span class="misspelled"[^>]*?data-word="${escapeRegExp(oldWord)}"[^>]*?>${escapeRegExp(oldWord)}</span>`, 'gi');
-  const newHTML = currentHTML.replace(regex, newWord);
-  
-  editor.innerHTML = newHTML;
-
-  setTimeout(() => {
-    isProgrammaticChange = false;
-    hideSuggestionsMenu();
-    updateStatus(`სიტყვა "${oldWord}" შეიცვალა "${newWord}"-ით`);
-    
-    // კურსორის აღდგენა ახალ პოზიციაზე
-    const newOffset = savedCaretOffset - oldWord.length + newWord.length;
-    setCaretPositionByOffset(editor, Math.max(0, newOffset));
-    
-    setTimeout(() => checkSpelling(), 100);
-  }, 10);
-}
-
-// მართლწერის ჩართვა/გამორთვა
-window.toggleSpellCheck = function() {
-  isSpellCheckEnabled = !isSpellCheckEnabled;
-  const toggleBtn = document.getElementById('spellCheckToggle');
-
-  if (isSpellCheckEnabled) {
-    toggleBtn.innerHTML = '<span class="btn-icon">✓</span> მართლწერა: ჩართული';
-    checkSpelling();
-    updateStatus('მართლწერის შემოწმება ჩართულია');
-  } else {
-    toggleBtn.innerHTML = '<span class="btn-icon">○</span> მართლწერა: გამორთული';
-    removeHighlights();
-    updateStatus('მართლწერის შემოწმება გამორთულია');
-  }
-}
-
-// სტატისტიკის განახლება
-function updateStatistics(totalWords, errorCount) {
-  const totalWordsEl = document.getElementById('totalWords');
-  const errorCountEl = document.getElementById('errorCount');
-  const accuracyEl = document.getElementById('accuracy');
-  
-  if (totalWordsEl) totalWordsEl.textContent = totalWords;
-  if (errorCountEl) errorCountEl.textContent = errorCount;
-  
-  const accuracy = totalWords > 0 ?
-    Math.round(((totalWords - errorCount) / totalWords) * 100) : 100;
-  
-  if (accuracyEl) accuracyEl.textContent = accuracy + '%';
-}
-
-// შედეგების ჩვენება
-function displayResults(errors) {
-  const resultsDiv = document.getElementById('results');
-  if (!resultsDiv) return;
-  
-  if (errors.length === 0) {
-    resultsDiv.innerHTML = `
+  if (!errors.length && !typography.length && !stopwords.length) {
+    container.innerHTML = `
       <div class="success-state">
-        <h3>✅ ყველა სიტყვა სწორია!</h3>
-        <p>გილოცავთ! ტექსტი შეცდომების გარეშეა დაწერილი.</p>
-      </div>
-    `;
-    return;
+        <div class="check-icon">✓</div>
+        <p>ყველა სიტყვა სწორია!</p>
+      </div>`
+    return
   }
 
-  let html = `
-    <h3 class="errors-title">📋 ნაპოვნი შეცდომები: ${errors.length}</h3>
-    <div class="errors-list">
-  `;
+  let html = ""
 
-  errors.forEach(error => {
-    const suggestionsHtml = error.suggestions.length > 0
-      ? `<div class="suggestions">
-           ${error.suggestions.map(s =>
-             `<button class="suggestion-btn"
-                      data-old="${escapeHtml(error.word)}"
-                      data-new="${escapeHtml(s)}">
-               ${escapeHtml(s)}
-             </button>`
-           ).join('')}
-         </div>`
-      : '<div class="no-suggestions-text">შემოთავაზებები არ არის</div>';
-
-    html += `
-      <div class="error-item">
-        <div class="error-word">${escapeHtml(error.word)}</div>
-        <div class="error-count">გვხვდება: ${escapeHtml(String(error.count))} ჯერ</div>
-        ${suggestionsHtml}
-      </div>
-    `;
-  });
-
-  html += `</div>`;
-  resultsDiv.innerHTML = html;
-}
-
-// სტატუსის განახლება
-function updateStatus(message) {
-  const statusElement = document.getElementById('status');
-  if (statusElement) {
-    statusElement.innerHTML = message;
-  }
-}
-
-// საწყისი ტექსტის ჩასმა
-function insertSampleText() {
-  const sampleText = `ჩაწერე ტექსტი.`;
-  const editor = document.getElementById('editor');
-  isProgrammaticChange = true;
-  editor.textContent = sampleText;
-
-  setTimeout(() => {
-    isProgrammaticChange = false;
-    moveCursorToEnd(editor);
-    checkSpelling();
-  }, 100);
-}
-
-// ==========================
-// მთავარი ინიციალიზაცია
-// ==========================
-document.addEventListener('DOMContentLoaded', function() {
-  // ძირითადი ლექსიკონის ინიციალიზაცია
-  const basicWords = ["ჩაწერე", "ტექსტი", "და", "არის", "ეს", "რომ"];
-  basicWords.forEach(word => georgianDictionary.add(word.toLowerCase()));
-
-  const editor = document.getElementById('editor');
-  if (!editor) return;
-
-  let checkTimeout;
-  let isComposing = false;
-
-  // Event delegation — .misspelled სიტყვებზე კლიკი (onclick-ის ნაცვლად)
-  editor.addEventListener('click', function(e) {
-    const span = e.target.closest('.misspelled');
-    if (span && span.dataset.word) {
-      showSuggestionsMenu(span.dataset.word, e);
-    }
-  });
-
-  // Event delegation — შემოთავაზებების ღილაკები results პანელში
-  const resultsContainer = document.getElementById('results');
-  if (resultsContainer) {
-    resultsContainer.addEventListener('click', function(e) {
-      const btn = e.target.closest('.suggestion-btn');
-      if (btn && btn.dataset.old && btn.dataset.new) {
-        replaceWord(btn.dataset.old, btn.dataset.new);
+  if (errors.length) {
+    html += `<div class="section-label">შეცდომები — ${errors.length}</div>`
+    errors.forEach(e => {
+      html += `<div class="error-card">
+        <div class="error-top">
+          <span class="error-word">${esc(e.word)}</span>
+          <span class="error-times">${e.count}×</span>
+        </div>`
+      if (e.suggestions && e.suggestions.length) {
+        html += `<div class="fixes">`
+        e.suggestions.forEach(s => {
+          html += `<button class="fix-btn" data-old="${esc(e.word)}" data-new="${esc(s)}">${esc(s)}</button>`
+        })
+        html += `</div>`
+      } else {
+        html += `<div class="no-fix">შემოთავაზება არ არის</div>`
       }
-    });
+      html += `</div>`
+    })
   }
 
-  // ედიტორის ცვლილებების დამუშავება
-  editor.addEventListener('input', function(e) {
-    if (isProgrammaticChange || isComposing) return;
-    
-    isUserTyping = true;
-    const caretPos = getCaretCharacterOffsetWithin(editor);
-    
-    clearTimeout(checkTimeout);
-    
-    if (isSpellCheckEnabled) {
-      checkTimeout = setTimeout(() => {
-        checkSpelling();
-        isUserTyping = false;
-      }, 500);
-    }
-    
-    // კურსორის აღდგენა მხოლოდ თუ მომხმარებელი წერს
-    setTimeout(() => {
-      setCaretPositionByOffset(editor, caretPos);
-    }, 0);
-  });
-
-  // IME კომპოზიციის მონიტორინგი
-  editor.addEventListener('compositionstart', function() {
-    isComposing = true;
-  });
-
-  editor.addEventListener('compositionend', function() {
-    isComposing = false;
-  });
-
-  // Enter-ის დაჭერის დამუშავება - გამარტივებული
-  editor.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      // აღვნიშნოთ, რომ Enter-ს ვაჭერთ
-      skipNextCursorRestore = true;
-      
-      // მოვიცადოთ ბრაუზერის დეფოლტური ქმედების დასრულებას
-      setTimeout(() => {
-        // spell checking
-        if (isSpellCheckEnabled) {
-          clearTimeout(checkTimeout);
-          checkTimeout = setTimeout(() => {
-            checkSpelling();
-            // spell checking-ის დასრულების შემდეგ ჩავრთოთ კურსორის აღდგენა ისევ
-            setTimeout(() => {
-              skipNextCursorRestore = false;
-            }, 50);
-          }, 300);
-        } else {
-          skipNextCursorRestore = false;
-        }
-      }, 0);
-    }
-  });
-
-  // ფოკუსის მენეჯმენტი
-  editor.addEventListener('blur', () => {
-    lastCaretPosition = getCaretCharacterOffsetWithin(editor);
-    isUserTyping = false;
-  });
-  
-  editor.addEventListener('focus', () => {
-    setTimeout(() => {
-      setCaretPositionByOffset(editor, lastCaretPosition);
-    }, 10);
-  });
-
-  // ინიციალიზაცია
-  updateStatus('მზადაა მუშაობისთვის');
-  if (!editor.textContent.trim()) {
-    insertSampleText();
+  if (typography.length) {
+    html += `<div class="section-label typo-label">ტიპოგრაფია — ${typography.length}</div>`
+    typography.forEach(t => {
+      const msg = typeof t === "string" ? t : (t.message || t.type || t.description || JSON.stringify(t))
+      html += `<div class="typo-card">${esc(msg)}</div>`
+    })
   }
-});
+
+  if (stopwords.length) {
+    html += `<div class="section-label stop-label">სტოპ-სიტყვები — ${stopwords.length}</div>`
+    stopwords.forEach(s => {
+      const word = typeof s === "string" ? s : (s.word || JSON.stringify(s))
+      html += `<div class="stop-card">${esc(word)}</div>`
+    })
+  }
+
+  container.innerHTML = html
+}
+
+// ─── Mirror rendering ────────────────────────────────────────────────────
+// Mirror div (z-index 2, pointer-events none except marks) overlays the
+// transparent textarea. Georgian text: color transparent — only <mark>
+// highlights visible. Newlines/spaces preserved via white-space:pre-wrap.
+
+function buildMirrorHtml(text, errors) {
+  if (!errors.length) return esc(text)
+
+  const errSet = new Set(errors.map(e => e.word.toLowerCase()))
+
+  // Split on Georgian Mkhedruli word boundaries (U+10D0–U+10FF)
+  const tokens = text.split(/([\u10D0-\u10FF]+)/u)
+  let html = ""
+  tokens.forEach(tok => {
+    if (/^[\u10D0-\u10FF]+$/u.test(tok) && errSet.has(tok.toLowerCase())) {
+      // data-word for tooltip lookup
+      html += `<mark class="err-mark" data-word="${esc(tok.toLowerCase())}">${esc(tok)}</mark>`
+    } else {
+      html += esc(tok)   // newlines & spaces preserved by white-space:pre-wrap
+    }
+  })
+  return html
+}
+
+function updateMirror(text, errors) {
+  const mirror = document.getElementById("mirror")
+  if (!mirror) return
+  mirror.innerHTML = buildMirrorHtml(text, errors)
+}
+
+function syncMirrorScroll() {
+  const input  = document.getElementById("input")
+  const mirror = document.getElementById("mirror")
+  if (input && mirror) mirror.scrollTop = input.scrollTop
+}
+
+// ─── Hover tooltip ───────────────────────────────────────────────────────
+// Marks have pointer-events:auto and z-index above textarea.
+// Tooltip appears on mouseenter, stays when mouse moves into it.
+
+let tooltipEl = null
+let tooltipHideTimer = null
+
+function ensureTooltip() {
+  if (tooltipEl) return
+  tooltipEl = document.createElement("div")
+  tooltipEl.className = "spell-tooltip"
+  tooltipEl.addEventListener("mouseenter", () => clearTimeout(tooltipHideTimer))
+  tooltipEl.addEventListener("mouseleave", scheduleHideTooltip)
+  tooltipEl.addEventListener("click", e => {
+    const fix = e.target.closest(".tooltip-fix")
+    if (fix) {
+      replaceWord(fix.dataset.old, fix.dataset.new)
+      hideTooltipNow()
+      document.getElementById("input")?.focus()
+      return
+    }
+    const add = e.target.closest(".tooltip-add-dict")
+    if (add) addToDictionary(add.dataset.add)
+  })
+  document.body.appendChild(tooltipEl)
+}
+
+function showTooltip(word, suggestions, anchorEl) {
+  ensureTooltip()
+  clearTimeout(tooltipHideTimer)
+
+  let html = `<div class="tooltip-word">${esc(word)}</div>`
+  if (suggestions && suggestions.length) {
+    html += `<div class="tooltip-list">`
+    suggestions.forEach(s => {
+      html += `<button class="tooltip-fix" data-old="${esc(word)}" data-new="${esc(s)}">${esc(s)}</button>`
+    })
+    html += `</div>`
+  } else {
+    html += `<div class="tooltip-empty">შემოთავაზება არ არის</div>`
+  }
+  html += `<div class="tooltip-footer">
+    <button class="tooltip-add-dict" data-add="${esc(word)}">+ დაამატე ლექსიკონში</button>
+  </div>`
+
+  tooltipEl.innerHTML = html
+  tooltipEl.style.display = "block"
+
+  // Position below the mark
+  const rect = anchorEl.getBoundingClientRect()
+  let top  = rect.bottom + window.scrollY + 6
+  let left = rect.left  + window.scrollX
+
+  tooltipEl.style.top  = top + "px"
+  tooltipEl.style.left = left + "px"
+
+  // Clamp to viewport right edge
+  requestAnimationFrame(() => {
+    const tw = tooltipEl.offsetWidth
+    if (left + tw > window.innerWidth - 8) {
+      tooltipEl.style.left = Math.max(8, window.innerWidth - tw - 8) + "px"
+    }
+  })
+}
+
+function scheduleHideTooltip() {
+  tooltipHideTimer = setTimeout(hideTooltipNow, 180)
+}
+
+function hideTooltipNow() {
+  clearTimeout(tooltipHideTimer)
+  if (tooltipEl) tooltipEl.style.display = "none"
+}
+
+// ─── Add to dictionary ───────────────────────────────────────────────────
+
+async function addToDictionary(word) {
+  hideTooltipNow()
+  setStatus(`"${word}" ემატება ლექსიკონს... <span class="spinner"></span>`)
+
+  try {
+    const res = await fetch("/api/dictionary/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ word })
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error || "HTTP " + res.status)
+    }
+
+    // Remove from current error list — word is now valid
+    currentErrors = currentErrors.filter(e => e.word !== word)
+
+    const input = document.getElementById("input")
+    if (input) updateMirror(input.value, currentErrors)
+
+    // Recount stats (total_words stays the same, only error count drops)
+    const statWords = document.getElementById("stat-words")
+    const total = statWords ? (parseInt(statWords.textContent) || 0) : 0
+    updateStats(total, currentErrors.length)
+
+    renderResults(currentErrors, [], [])
+    setStatus(`✓ "${word}" დაემატა ლექსიკონს`)
+    document.getElementById("input")?.focus()
+
+  } catch (err) {
+    setStatus(`❌ ${err.message}`)
+    console.error("addToDictionary:", err)
+  }
+}
+
+// ─── Word replacement ────────────────────────────────────────────────────
+
+function replaceWord(oldWord, newWord) {
+  const input = document.getElementById("input")
+  if (!input) return
+
+  const tokens = input.value.split(/([\u10D0-\u10FF]+)/u)
+  input.value = tokens.map(tok =>
+    /^[\u10D0-\u10FF]+$/u.test(tok) && tok.toLowerCase() === oldWord.toLowerCase()
+      ? newWord
+      : tok
+  ).join("")
+
+  updateMirror(input.value, currentErrors)
+  setStatus(`"${oldWord}" → "${newWord}"`)
+  checkSpelling()
+}
+
+// ─── .docx Save ─────────────────────────────────────────────────────────
+// Build a minimal valid .docx (ZIP containing Word XML), download it.
+
+function escXml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;").replace(/'/g, "&apos;")
+}
+
+function saveDocx () {
+  const text = document.getElementById("input")?.value || ""
+  if (!text.trim()) { setStatus("გასაიმახსოვრებელი ტექსტი არ არის"); return }
+
+  // Convert plain text paragraphs → Word XML <w:p> elements
+  const paragraphs = text.split("\n").map(line => {
+    if (!line) return `<w:p/>`
+    return `<w:p><w:r><w:t xml:space="preserve">${escXml(line)}</w:t></w:r></w:p>`
+  }).join("")
+
+  const files = {
+    "[Content_Types].xml": strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+      `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+      `<Default Extension="xml"  ContentType="application/xml"/>` +
+      `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+      `</Types>`
+    ),
+    "_rels/.rels": strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
+      `</Relationships>`
+    ),
+    "word/_rels/document.xml.rels": strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`
+    ),
+    "word/document.xml": strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+      `<w:body>${paragraphs}<w:sectPr/></w:body></w:document>`
+    )
+  }
+
+  const zipData = zipSync(files, { level: 6 })
+  const blob = new Blob([zipData], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" })
+
+  const a = document.createElement("a")
+  a.href = URL.createObjectURL(blob)
+  a.download = "document.docx"
+  a.click()
+  URL.revokeObjectURL(a.href)
+  setStatus("ფაილი გადმოწერილია: document.docx")
+}
+
+// ─── .docx Open ──────────────────────────────────────────────────────────
+// Unzip the .docx, parse word/document.xml, extract plain text.
+
+function openDocx () {
+  document.getElementById("docxFile").click()
+}
+
+function handleDocxOpen (files) {
+  if (!files || !files.length) return
+  const file = files[0]
+  setStatus(`იხსნება: ${file.name}… <span class="spinner"></span>`)
+
+  const reader = new FileReader()
+  reader.onload = e => {
+    try {
+      const zipData = new Uint8Array(e.target.result)
+      const unzipped = unzipSync(zipData)
+
+      // Find word/document.xml (key may vary in case)
+      const docKey = Object.keys(unzipped).find(k => k.match(/word\/document\.xml$/i))
+      if (!docKey) throw new Error("word/document.xml not found in archive")
+
+      const xmlStr = strFromU8(unzipped[docKey])
+
+      // Parse XML and extract text from <w:t> elements, preserving paragraphs
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(xmlStr, "application/xml")
+
+      // Each <w:p> = paragraph; collect <w:t> text within it
+      const paras = Array.from(xmlDoc.getElementsByTagNameNS(
+        "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "p"
+      ))
+
+      const text = paras.map(p => {
+        const runs = Array.from(p.getElementsByTagNameNS(
+          "http://schemas.openxmlformats.org/wordprocessingml/2006/main", "t"
+        ))
+        return runs.map(t => t.textContent).join("")
+      }).join("\n")
+
+      const input = document.getElementById("input")
+      if (input) {
+        input.value = text
+        input.focus()
+      }
+
+      setStatus(`გახსნილია: ${file.name}`)
+
+      // Reset file input so same file can be re-opened
+      document.getElementById("docxFile").value = ""
+
+      // Trigger spell check
+      const auto = document.getElementById("autoCheck")
+      if (auto?.checked) checkSpelling()
+
+    } catch (err) {
+      setStatus(`❌ ფაილის გახსნა ვერ მოხერხდა: ${err.message}`)
+      console.error("openDocx:", err)
+    }
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+// ─── Reset ──────────────────────────────────────────────────────────────
+
+function resetUI() {
+  currentErrors = []
+  updateStats(0, 0)
+  const results = document.getElementById("results")
+  if (results) {
+    results.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">ᛃ</div>
+        <p>შეიყვანეთ შესამოწმებელი ტექსტი</p>
+      </div>`
+  }
+  updateMirror("", [])
+  setStatus("მზადაა")
+}
+
+// ─── Dictionary ─────────────────────────────────────────────────────────
+
+function loadExternalDictionary () {
+  document.getElementById("dictionaryFile").click()
+}
+
+function handleDictionaryFile (files) {
+  if (!files || !files.length) return
+  const reader = new FileReader()
+  reader.onload = e => {
+    userDictionary.clear()
+    e.target.result.split("\n").forEach(w => {
+      w = w.trim()
+      if (w && /^[\u10D0-\u10FF\-]+$/u.test(w)) userDictionary.add(w.toLowerCase())
+    })
+    setStatus(`ლექსიკონი: ${userDictionary.size} სიტყვა`)
+  }
+  reader.readAsText(files[0], "UTF-8")
+}
+
+// ─── UI helpers ─────────────────────────────────────────────────────────
+
+function clearInput () {
+  if (activeRequest) { activeRequest.abort(); activeRequest = null }
+  const input = document.getElementById("input")
+  if (input) { input.value = ""; input.focus() }
+  resetUI()
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+  const input        = document.getElementById("input")
+  const mirror       = document.getElementById("mirror")
+  const results      = document.getElementById("results")
+  const dictFile     = document.getElementById("dictionaryFile")
+  const docxFile     = document.getElementById("docxFile")
+
+  // ── Toolbar buttons ─────────────────────────────────────────────────────
+
+  document.getElementById("btn-check")?.addEventListener("click", () => checkSpelling())
+  document.getElementById("btn-clear")?.addEventListener("click", () => clearInput())
+  document.getElementById("btn-dict") ?.addEventListener("click", () => dictFile?.click())
+  document.getElementById("btn-save") ?.addEventListener("click", () => saveDocx())
+  document.getElementById("btn-open") ?.addEventListener("click", () => docxFile?.click())
+
+  // ── File inputs ──────────────────────────────────────────────────────────
+
+  dictFile?.addEventListener("change", () => handleDictionaryFile(dictFile.files))
+  docxFile?.addEventListener("change", () => {
+    handleDocxOpen(docxFile.files)
+    docxFile.value = ""   // reset so same file can be re-opened
+  })
+
+  // ── Textarea: typing, mirror sync, auto-check ───────────────────────────
+
+  input?.addEventListener("input", () => {
+    const text = input.value
+    const len  = text.length
+
+    if (len < 8000) updateMirror(text, currentErrors)
+
+    const auto = document.getElementById("autoCheck")
+    if (auto?.checked) {
+      clearTimeout(checkTimer)
+      if (len > 0) setStatus(`${len.toLocaleString()} სიმბოლო…`)
+      checkTimer = setTimeout(checkSpelling, debounceDelay(len))
+    }
+  })
+
+  input?.addEventListener("scroll", syncMirrorScroll)
+
+  // ── Results panel: fix-btn clicks ───────────────────────────────────────
+
+  results?.addEventListener("click", e => {
+    const btn = e.target.closest(".fix-btn")
+    if (btn) replaceWord(btn.dataset.old, btn.dataset.new)
+  })
+
+  // ── Mirror: hover tooltip on error marks ────────────────────────────────
+  // pointer-events:none on mirror, auto on marks — mouseover bubbles from marks.
+
+  mirror?.addEventListener("mouseover", e => {
+    const mark = e.target.closest("mark.err-mark")
+    if (!mark) return
+    const word  = mark.dataset.word
+    const error = currentErrors.find(err => err.word === word)
+    if (error) showTooltip(word, error.suggestions, mark)
+  })
+
+  mirror?.addEventListener("mouseout", e => {
+    if (e.target.closest("mark.err-mark")) scheduleHideTooltip()
+  })
+
+  mirror?.addEventListener("click", e => {
+    if (e.target.closest("mark.err-mark")) input?.focus()
+  })
+
+  input?.addEventListener("keydown", hideTooltipNow)
+  input?.addEventListener("scroll",  hideTooltipNow)
+
+  setStatus("მზადაა")
+})

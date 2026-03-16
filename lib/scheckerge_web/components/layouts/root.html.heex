@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default="ႤႱႹႤႩႤႰႿႨ" suffix=" · ქართული მართლწერის შემოწმება">
+    <.live_title default="ႫႠႰႧႪႼႤႰႠ" suffix=" · ქართული მართლწერის შემოწმება">
       {assigns[:page_title]}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
-  <main class="bg-white">
+  <main>
     {@inner_content}
   </main>
 </html>

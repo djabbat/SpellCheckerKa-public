@@ -1,76 +1,76 @@
-<div class="container">
-  <div class="header">
-    <div class="header-content">
-      <h1>ႤႱႹႤႩႤႰႿႨ</h1>
-      <p class="subtitle">ქართული მართლწერის შემოწმება</p>
-    </div>
-    <div class="header-buttons">
-      <button class="window-btn">−</button>
-      <button class="window-btn">□</button>
-      <button class="window-btn">×</button>
-    </div>
-  </div>
+<div class="app">
 
-  <div class="main-content">
-    <div class="editor-section">
-      <div class="toolbar">
-        <button class="btn" onclick="toggleSpellCheck()" id="spellCheckToggle">
-          <span class="btn-icon">✓</span> მართლწერა: ჩართული
-        </button>
-        <button class="btn btn-secondary" onclick="loadExternalDictionary()">
-          <span class="btn-icon">📚</span> ლექსიკონის ჩატვირთვა
-        </button>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">Ⴋ</div>
+      <div class="brand-text">
+        <h1>ႫႠႰႧႪႼႤႰႠ</h1>
+        <p>ქართული მართლწერის შემოწმება</p>
       </div>
+    </div>
+    <div class="header-actions">
+      <label class="auto-label">
+        <input type="checkbox" id="autoCheck" checked>
+        <span>ავტო</span>
+      </label>
+      <div class="btn-separator"></div>
+      <button class="btn btn-ghost" id="btn-open">გახსენი</button>
+      <button class="btn btn-ghost" id="btn-save">დაიმახსოვრე</button>
+      <div class="btn-separator"></div>
+      <button class="btn btn-ghost" id="btn-dict">+ ლექსიკონი</button>
+      <button class="btn btn-ghost" id="btn-clear">გასუფთავება</button>
+      <button class="btn btn-primary" id="btn-check">შემოწმება</button>
+    </div>
+  </header>
 
-      <div class="editor-container">
-        <div 
-          id="editor" 
-          contenteditable="true"
-          class="editor"
-          data-placeholder="შეიყვანეთ ტექსტი ქართული მართლწერის შესამოწმებლად..."
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
+  <div class="workspace">
+
+    <section class="input-panel">
+      <div class="editor-wrap">
+        <div id="mirror" class="editor-mirror" aria-hidden="true"></div>
+        <textarea
+          id="input"
+          class="text-input"
+          placeholder="შეიყვანეთ ქართული ტექსტი მართლწერის შესამოწმებლად..."
           spellcheck="false"
-          dir="auto">
-        </div>
+          autocorrect="off"
+          autocomplete="off"
+          autocapitalize="off"
+        ></textarea>
       </div>
-    </div>
+    </section>
 
-    <div class="results-section">
-      <div class="stats">
-        <div class="stat-card">
-          <span class="stat-number" id="totalWords">0</span>
-          <span class="stat-label">სიტყვა</span>
+    <section class="results-panel">
+      <div class="results-stats">
+        <div class="stat-row">
+          <span class="stat-label">სიტყვები</span>
+          <strong id="stat-words">—</strong>
         </div>
-        <div class="stat-card">
-          <span class="stat-number" id="errorCount">0</span>
-          <span class="stat-label">შეცდომა</span>
+        <div class="stat-row">
+          <span class="stat-label">შეცდომები</span>
+          <strong id="stat-errors">—</strong>
         </div>
-        <div class="stat-card">
-          <span class="stat-number" id="accuracy">100%</span>
+        <div class="stat-row">
           <span class="stat-label">სიზუსტე</span>
+          <strong id="stat-accuracy">—</strong>
         </div>
       </div>
-
-      <div id="results" class="results-container">
+      <div id="results" class="results-body">
         <div class="empty-state">
-          <h3>🔍 შედეგები აქ გამოჩნდება</h3>
-          <p>დაწერეთ ტექსტი და მონიტორი ავტომატურად შეამოწმებს</p>
+          <div class="empty-icon">ᛃ</div>
+          <p>შეიყვანეთ შესამოწმებელი ტექსტი</p>
         </div>
       </div>
-    </div>
+    </section>
+
   </div>
 
-  <div class="status-bar">
-    <div>
-      <span id="status">მზადაა მუშაობისთვის</span>
-    </div>
-    <div class="copyright-info">
-      <span>© 2025 2sco. ყველა უფლება დაცულია.</span>
-    </div>
-  </div>
+  <footer class="status-bar">
+    <span id="status">მზადაა</span>
+    <span class="copyright">© 2025 2sco</span>
+  </footer>
+
 </div>
 
-<!-- ფაილის ასარჩევი ლექსიკონისთვის -->
-<input type="file" id="dictionaryFile" accept=".txt" style="display: none;" onchange="handleDictionaryFile(this.files)">
+<input type="file" id="dictionaryFile" accept=".txt"  style="display:none">
+<input type="file" id="docxFile"       accept=".docx" style="display:none">

@@ -13,6 +13,30 @@ defmodule ScheckergeWeb.SpellController do
     conn |> put_cors_headers() |> send_resp(204, "")
   end
 
+  # ── Dictionary: add word ──────────────────────────────────────────────────────
+
+  def add_word(conn, %{"word" => word}) do
+    case Dictionary.add_word(word) do
+      :ok ->
+        conn
+        |> put_cors_headers()
+        |> json(%{ok: true, word: word |> String.trim() |> String.downcase()})
+
+      {:error, :invalid_word} ->
+        conn
+        |> put_cors_headers()
+        |> put_status(:bad_request)
+        |> json(%{error: "სიტყვა უნდა შეიცავდეს მხოლოდ ქართულ ასოებს (მინ. 2 სიმბოლო)"})
+    end
+  end
+
+  def add_word(conn, _params) do
+    conn
+    |> put_cors_headers()
+    |> put_status(:bad_request)
+    |> json(%{error: "გამოტოვებული პარამეტრი: word"})
+  end
+
   # ── Main check endpoint ───────────────────────────────────────────────────────
 
   def check(conn, %{"text" => text}) when byte_size(text) > @max_text_bytes do

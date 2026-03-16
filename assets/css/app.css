@@ -2,618 +2,603 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
-* {
+/* ─── Design tokens ─────────────────────────────────────────────────── */
+:root {
+  --red:        #dc2626;
+  --red-dark:   #b91c1c;
+  --red-light:  #fef2f2;
+  --blue:       #2563eb;
+  --green:      #16a34a;
+  --warn:       #d97706;
+  --text:       #0f172a;
+  --text-muted: #64748b;
+  --bg:         #f1f5f9;
+  --surface:    #ffffff;
+  --border:     #e2e8f0;
+  --radius:     6px;
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.06);
+  --shadow:     0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-  background: #ece9d8;
-  min-height: 100vh;
-  padding: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 9px;
-}
-
-.container {
-  width: 95vw;
-  height: calc(95vh - 9px);
-  margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid #aca899;
-  border-radius: 0;
-  box-shadow: 1px 1px 0px #d6d3ce;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Microsoft Word-ის მსგავსი სათაურის ზოლი */
-.header {
-  background: linear-gradient(to bottom, #0a246a 0%, #2a4a7e 100%);
-  color: white;
-  padding: 12px 20px;
-  border-bottom: 1px solid #1c3f8c;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.header-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.subtitle {
-  font-size: 11px;
-  opacity: 0.9;
-  color: #c0c9e0;
-}
-
-/* Microsoft Office-ის მსგავსი ღილაკები */
-.header-buttons {
-  display: flex;
-  gap: 4px;
-}
-
-.window-btn {
-  width: 16px;
-  height: 16px;
-  border: 1px solid #1c3f8c;
-  background: linear-gradient(to bottom, #3a7be0 0%, #2a4a7e 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: white;
-  cursor: pointer;
-}
-
-.window-btn:hover {
-  background: linear-gradient(to bottom, #4a8bf0 0%, #3a5a8e 100%);
-}
-
-.window-btn:active {
-  background: linear-gradient(to bottom, #2a6bd0 0%, #1a3a6e 100%);
-}
-
-.main-content {
-  display: grid;
-  grid-template-columns: 81% 18%;
-  gap: 1%;
-  flex-grow: 1;
-  min-height: 0;
-  overflow: hidden;
-  width: 100%;
-  padding: 8px;
-}
-
-/* Microsoft Word-ის მსგავსი ხელსაწყოთა ზოლი */
-.toolbar {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-  padding: 6px;
-  background: #f0f0f0;
-  border: 1px solid #aca899;
-  border-radius: 0;
-  flex-shrink: 0;
-  border-top: none;
-}
-
-.btn {
-  background: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
-  color: #000000;
-  border: 1px solid #7f9db9;
-  padding: 4px 8px;
-  border-radius: 2px;
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 400;
-  transition: all 0.1s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 140px;
-  box-shadow: inset 1px 1px 0px #ffffff;
-}
-
-.btn:hover {
-  background: linear-gradient(to bottom, #e1e1e1 0%, #d1d1d1 100%);
-}
-
-.btn:active {
-  background: linear-gradient(to bottom, #d0d0d0 0%, #c0c0c0 100%);
-  box-shadow: inset 1px 1px 0px #a0a0a0;
-}
-
-.btn-secondary {
-  background: linear-gradient(to bottom, #f8f8f8 0%, #e8e8e8 100%);
-  border-color: #a0a0a0;
-}
-
-.btn-icon {
-  font-size: 10px;
-  width: 12px;
-  text-align: center;
-}
-
-/* ედიტორის სექცია */
-.editor-section {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border: 1px solid #aca899;
-  background: #ffffff;
-  position: relative;
-  overflow: hidden;
-}
-
-.editor-container {
-  position: relative;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 200px;
-  overflow: hidden;
-}
-
-#editor {
-  width: 100%;
-  height: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  resize: none;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: transparent;
-  position: relative;
-  z-index: 1;
-  overflow-y: auto;
-  min-height: 200px;
-  text-align: left;
-  direction: ltr;
-  unicode-bidi: isolate;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* სქროლ ბარების სტილები */
-#editor::-webkit-scrollbar {
-  width: 16px;
-}
-
-#editor::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-left: 1px solid #d6d3ce;
-}
-
-#editor::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border: 1px solid #a0a0a0;
-  border-radius: 0;
-}
-
-#editor::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-#editor::-webkit-scrollbar-button {
-  display: none;
-}
-
-#editor:focus {
-  outline: none;
-  caret-color: #0a246a;
-}
-
-/* რიგაჟოკი ედიტორისთვის */
-.scroll-indicator {
-  position: absolute;
-  right: 2px;
-  background: rgba(10, 36, 106, 0.8);
-  color: white;
-  padding: 2px 6px;
-  border-radius: 2px;
-  font-size: 8px;
-  z-index: 10;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.scroll-indicator.visible {
-  opacity: 1;
-}
-
-.editor-scroll-indicator {
-  bottom: 4px;
-}
-
-.results-scroll-indicator {
-  bottom: 4px;
-}
-
-/* Microsoft Word-ის მსგავსი ორთოგრაფიული შეცდომების მონიშვნა */
-.misspelled {
-  background: transparent !important;
-  text-decoration: underline wavy #c00000;
-  text-underline-offset: 2px;
-  text-decoration-thickness: 1px;
-  cursor: pointer;
-  position: relative;
-  display: inline;
-}
-
-.misspelled:hover {
-  background: rgba(192, 0, 0, 0.1) !important;
-}
-
-/* Microsoft Word-ის მსგავსი შემოთავაზებების მენიუ */
-.suggestions-menu {
-  position: absolute;
-  background: #ffffff;
-  border: 1px solid #7f9db9;
-  border-radius: 0;
-  box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-  z-index: 1000;
-  min-width: 140px;
-  max-width: 200px;
-  font-family: 'Segoe UI', sans-serif;
-}
-
-.suggestions-header {
-  background: #0a246a;
-  padding: 4px 6px;
-  border-bottom: 1px solid #1c3f8c;
-  font-size: 9px;
-  font-weight: 600;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  cursor: pointer;
-  color: #c0c9e0;
-  padding: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.close-btn:hover {
-  background: #2a4a7e;
-  color: white;
-}
-
-.suggestions-list {
-  max-height: 120px;
-  overflow-y: auto;
-}
-
-.suggestion-item {
-  padding: 4px 6px;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 9px;
-  transition: background-color 0.1s ease;
-}
-
-.suggestion-item:hover {
-  background-color: #316ac5;
-  color: white;
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.no-suggestions {
-  padding: 6px;
-  text-align: center;
-  color: #666;
-  font-style: italic;
-  font-size: 8px;
-}
-
-/* შედეგების სექცია */
-.results-section {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border: 1px solid #aca899;
-  background: #ffffff;
-  position: relative;
-  padding: 8px;
+  color: var(--text);
+  background: var(--bg);
+  height: 100vh;
   overflow: hidden;
 }
 
-.results-content {
+/* ─── App shell ─────────────────────────────────────────────────────── */
+.app {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.results-container {
-  flex-grow: 1;
-  overflow-y: auto;
-  position: relative;
-  min-height: 0;
-}
-
-/* შედეგების სქროლ ბარების სტილები */
-.results-container::-webkit-scrollbar {
-  width: 12px;
-}
-
-.results-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-left: 1px solid #d6d3ce;
-}
-
-.results-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border: 1px solid #a0a0a0;
-  border-radius: 0;
-}
-
-.results-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.results-container::-webkit-scrollbar-button {
-  display: none;
-}
-
-/* Microsoft Word-ის მსგავსი სტატისტიკის ბარათები */
-.stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
-  margin-bottom: 6px;
-  flex-shrink: 0;
-}
-
-.stat-card {
-  background: #f0f0f0;
-  padding: 3px;
-  border-radius: 0;
-  text-align: center;
-  border: 1px solid #aca899;
-  box-shadow: inset 1px 1px 0px #ffffff;
-  font-size: 8px;
-  min-width: 0;
-}
-
-.stat-number {
-  font-size: 11px;
-  font-weight: 600;
-  color: #0a246a;
-  display: block;
-}
-
-.stat-label {
-  font-size: 7px;
-  color: #666;
-  margin-top: 1px;
-}
-
-.empty-state, .success-state {
-  text-align: center;
-  padding: 8px 4px;
-  color: #666;
-}
-
-.empty-state h3, .success-state h3 {
-  font-size: 9px;
-  margin-bottom: 3px;
-  font-weight: 600;
-}
-
-.empty-state p, .success-state p {
-  font-size: 7px;
-  line-height: 1.2;
-}
-
-.success-state {
-  color: #2d6a2d;
-}
-
-.errors-list {
-  flex-grow: 1;
-  overflow-y: auto;
-  min-height: 0;
-  position: relative;
-  max-height: 100%;
-}
-
-.errors-title {
-  margin-bottom: 4px;
-  color: #c00000;
-  font-size: 9px;
-  font-weight: 600;
-  padding: 0 2px;
-}
-
-.error-item {
-  background: #fff5f5;
-  border: 1px solid #f4c7c3;
-  border-radius: 0;
-  padding: 4px;
-  margin-bottom: 3px;
-  font-size: 8px;
-  min-width: 0;
-}
-
-.error-word {
-  font-weight: 600;
-  color: #c00000;
-  font-size: 9px;
-  margin-bottom: 2px;
-  line-height: 1.1;
-}
-
-.error-count {
-  font-size: 7px;
-  color: #666;
-  margin-bottom: 2px;
-}
-
-.suggestions {
+/* ─── Header ────────────────────────────────────────────────────────── */
+.app-header {
   display: flex;
-  gap: 2px;
-  flex-wrap: wrap;
-}
-
-.suggestion-btn {
-  background: linear-gradient(to bottom, #e3f2fd 0%, #d0e8ff 100%);
-  border: 1px solid #7f9db9;
-  color: #0a246a;
-  padding: 1px 3px;
-  border-radius: 1px;
-  font-size: 7px;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  font-family: 'Segoe UI', sans-serif;
-  box-shadow: inset 1px 1px 0px #ffffff;
-}
-
-.suggestion-btn:hover {
-  background: linear-gradient(to bottom, #316ac5 0%, #0a246a 100%);
-  color: white;
-}
-
-.no-suggestions-text {
-  color: #666;
-  font-size: 7px;
-  font-style: italic;
-}
-
-/* Microsoft Word-ის მსგავსი სტატუსის ზოლი */
-.status-bar {
-  background: #f0f0f0;
-  padding: 2px 8px;
-  border-top: 1px solid #aca899;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 8px;
-  color: #000000;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--red);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
+  gap: 16px;
 }
 
-.status-left {
+.brand {
   display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-.status-item {
+.brand-mark {
+  font-size: 26px;
+  color: var(--red);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.brand-text h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.brand-text p {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.header-actions {
   display: flex;
   align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.auto-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+}
+
+.auto-label:hover { background: var(--bg); }
+
+.btn-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.auto-label input[type="checkbox"] {
+  accent-color: var(--red);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* ─── Buttons ───────────────────────────────────────────────────────── */
+.btn {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.12s, transform 0.08s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--red);
+  color: #fff;
+}
+.btn-primary:hover  { background: var(--red-dark); }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover  { background: var(--bg); color: var(--text); }
+.btn-ghost:active { transform: scale(0.97); }
+
+.btn.small {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+/* ─── Workspace ─────────────────────────────────────────────────────── */
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ─── Input panel ───────────────────────────────────────────────────── */
+.input-panel {
+  flex: 62%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  min-width: 0;
+}
+
+/* Mirror overlay technique:
+   mirror div sits behind textarea, same metrics, text transparent —
+   only the <mark> highlights are visible. Textarea on top is transparent
+   so user sees their text + highlights simultaneously. */
+.editor-wrap {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Shared metrics — must match textarea exactly */
+.editor-mirror,
+.text-input {
+  padding: 20px 24px;
+  font-size: 16px;
+  line-height: 1.75;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  tab-size: 4;
+}
+
+.editor-mirror {
+  position: absolute;
+  inset: 0;
+  color: transparent;      /* mirror text invisible — only marks show */
+  overflow: hidden;        /* scroll synced via JS, no own scrollbar */
+  pointer-events: none;    /* pass all events to textarea by default */
+  border: none;
+  background: transparent;
+  z-index: 2;              /* above textarea so marks can catch mouse events */
+}
+
+/* Error marks override pointer-events so they're hoverable */
+.editor-mirror mark.err-mark {
+  background: rgba(220, 38, 38, 0.13);
+  color: transparent;
+  border-radius: 3px;
+  outline: 1.5px solid rgba(220, 38, 38, 0.32);
+  outline-offset: 1px;
+  pointer-events: auto;   /* marks intercept mouse — tooltip works */
+  cursor: default;
+}
+
+.text-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  resize: none;
+  color: var(--text);
+  background: transparent;  /* mirror highlights visible beneath */
+  caret-color: var(--text);
+  outline: none;
+  z-index: 1;              /* below mirror, above nothing */
+  overflow-y: auto;
+}
+
+.text-input::placeholder {
+  color: #cbd5e1;
+}
+
+.text-input::-webkit-scrollbar { width: 6px; }
+.text-input::-webkit-scrollbar-track { background: transparent; }
+.text-input::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.text-input::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+/* ─── Results panel ─────────────────────────────────────────────────── */
+.results-panel {
+  flex: 38%;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.results-stats {
+  padding: 14px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.stat-row strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Color utilities for stats */
+.c-red   { color: var(--red)   !important; }
+.c-green { color: var(--green) !important; }
+.c-warn  { color: var(--warn)  !important; }
+
+.results-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.results-body::-webkit-scrollbar { width: 6px; }
+.results-body::-webkit-scrollbar-track { background: transparent; }
+.results-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── Section labels ────────────────────────────────────────────────── */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 4px 2px;
+  margin: 10px 0 6px;
+}
+.section-label:first-child { margin-top: 2px; }
+
+.typo-label { color: var(--warn); }
+.stop-label { color: var(--blue); }
+
+/* ─── Error cards ───────────────────────────────────────────────────── */
+.error-card {
+  background: var(--surface);
+  border: 1px solid #fecaca;
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: box-shadow 0.15s;
+}
+
+.error-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.error-card.highlight-flash {
+  background: var(--red-light);
+  transition: background 0.1s;
+}
+
+.error-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 7px;
+}
+
+.error-word {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.error-times {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.fixes {
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
-.copyright-info {
-  font-size: 7px;
-  color: #666;
+.fix-btn {
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: var(--blue);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
 }
 
-.loading {
+.fix-btn:hover {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+.no-fix {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ─── Typography & stopword cards ──────────────────────────────────── */
+.typo-card {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 3px solid var(--warn);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #92400e;
+}
+
+.stop-card {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  margin-bottom: 5px;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+/* ─── Empty / success states ────────────────────────────────────────── */
+.empty-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+  opacity: 0.4;
+}
+
+.empty-state p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.success-state {
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.check-icon {
+  font-size: 36px;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+
+.success-state p {
+  font-size: 14px;
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* ─── Hover tooltip ─────────────────────────────────────────────────── */
+.spell-tooltip {
+  position: absolute;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.13);
+  min-width: 140px;
+  max-width: 240px;
+  overflow: hidden;
+  display: none;
+  animation: tooltip-in 0.12s ease;
+}
+
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tooltip-word {
+  padding: 8px 12px 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red);
+  background: var(--red-light);
+  border-bottom: 1px solid #fecaca;
+}
+
+.tooltip-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tooltip-fix {
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background 0.1s;
+}
+
+.tooltip-fix:last-child { border-bottom: none; }
+
+.tooltip-fix:hover {
+  background: #eff6ff;
+  color: var(--blue);
+}
+
+.tooltip-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.tooltip-footer {
+  border-top: 1px solid var(--border);
+}
+
+.tooltip-add-dict {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
+}
+
+.tooltip-add-dict:hover {
+  background: #f0fdf4;
+  color: var(--green);
+}
+
+/* ─── Status bar ────────────────────────────────────────────────────── */
+.status-bar {
+  padding: 4px 20px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.copyright {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* ─── Spinner ───────────────────────────────────────────────────────── */
+.spinner {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  border: 1px solid #f3f3f3;
-  border-top: 1px solid #0a246a;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── Mobile ────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  body {
-    padding-top: 100px;
+  .workspace {
+    flex-direction: column;
   }
-  
-  .container {
-    height: calc(95vh - 100px);
-  }
-  
-  .main-content {
-    grid-template-columns: 1fr;
-  }
-  
-  .editor-section {
+
+  .input-panel {
+    flex: none;
+    height: 50%;
     border-right: none;
-    border-bottom: 1px solid #aca899;
-    width: 100%;
-    height: 100%;
-    padding: 9px;
+    border-bottom: 1px solid var(--border);
   }
-  
-  .results-section {
-    width: 100%;
-    padding: 9px;
+
+  .results-panel {
+    flex: none;
+    height: 50%;
   }
-  
-  .stats {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+
+  .header-actions {
+    gap: 4px;
   }
-  
-  .stat-card {
-    padding: 6px;
+
+  .header-actions .btn-ghost:not(:last-child) {
+    display: none;
   }
-  
-  .stat-number {
-    font-size: 12px;
+
+  .app-header {
+    padding: 0 12px;
+    height: 50px;
   }
-  
-  .stat-label {
-    font-size: 9px;
+
+  .brand-mark {
+    font-size: 20px;
   }
-  
-  .toolbar {
-    flex-direction: column;
+
+  .brand-text h1 {
+    font-size: 14px;
   }
-  
-  .btn {
-    min-width: auto;
+
+  .brand-text p {
+    display: none;
   }
-  
-  .header {
-    flex-direction: column;
-    gap: 8px;
+
+  .text-input {
+    font-size: 15px;
+    padding: 14px 16px;
   }
-  
-  .header-buttons {
-    align-self: flex-end;
+
+  .preview-section {
+    max-height: 160px;
   }
 }
