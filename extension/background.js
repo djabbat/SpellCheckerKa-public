@@ -66,15 +66,33 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // API call
 // ─────────────────────────────────────────────
 
-async function checkText(text) {
-  const url = await getServerUrl();
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text })
-  });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  return resp.json();
+const FETCH_TIMEOUT_MS = 8000;
+const MAX_RETRIES      = 2;
+
+async function checkText(text, attempt = 0) {
+  const url        = await getServerUrl();
+  const controller = new AbortController();
+  const timer      = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  try {
+    const resp = await fetch(url, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ text }),
+      signal:  controller.signal,
+    });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  } catch (err) {
+    clearTimeout(timer);
+    // Retry on network errors (not on 4xx/5xx — those are definitive)
+    if (attempt < MAX_RETRIES && (err.name === "AbortError" || err.name === "TypeError")) {
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));  // backoff
+      return checkText(text, attempt + 1);
+    }
+    throw err;
+  }
 }
 
 async function getServerUrl() {

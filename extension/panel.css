@@ -1,170 +1,555 @@
-/* ScheckerGe Extension — панель ошибок (Windows Classic theme) */
+/* ═══════════════════════════════════════════════════════════════
+   ScheckerGe — Panel UI v3
+   ═══════════════════════════════════════════════════════════════ */
 
-#scheckerge-panel {
-  position: fixed;
-  top: 60px;
-  right: 16px;
-  width: 300px;
-  max-height: 80vh;
-  overflow-y: auto;
-  z-index: 2147483647;
-  background: #d4d0c8;
-  border: 2px solid;
-  border-color: #ffffff #808080 #808080 #ffffff;
-  box-shadow: 2px 2px 0 #000;
-  font-family: "Noto Sans Georgian", "Sylfaen", Tahoma, sans-serif;
-  font-size: 12px;
-  color: #000;
-  user-select: none;
+/* ── Inline error marks (injected into page DOM) ────────────── */
+
+.sg-err-mark {
+  text-decoration: underline wavy #E53E3E;
+  text-decoration-skip-ink: none;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.12s;
 }
 
-#scheckerge-panel.hidden {
+.sg-err-mark:hover {
+  background: rgba(229, 62, 62, 0.10);
+}
+
+/* ── Tooltip popup ──────────────────────────────────────────── */
+
+#sg-tip {
+  position:      absolute;
+  z-index:       2147483647;
+  background:    #18181B;
+  border-radius: 10px;
+  padding:       5px 6px;
+  display:       flex;
+  align-items:   center;
+  gap:           3px;
+  box-shadow:    0 8px 24px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2);
+  font-family:   "Noto Sans Georgian", "Sylfaen", system-ui, sans-serif;
+  font-size:     12px;
+  user-select:   none;
+  pointer-events: all;
+}
+
+.sg-tip-sug {
+  background:    #3F3F46;
+  color:         #F4F4F5;
+  border:        1px solid #52525B;
+  border-radius: 6px;
+  padding:       3px 9px;
+  font-size:     12px;
+  font-family:   inherit;
+  cursor:        pointer;
+  transition:    background 0.12s;
+  white-space:   nowrap;
+}
+
+.sg-tip-sug:hover {
+  background: #6366F1;
+  border-color: #6366F1;
+  color: #fff;
+}
+
+.sg-tip-sep {
+  width:      1px;
+  height:     16px;
+  background: #3F3F46;
+  margin:     0 2px;
+  flex-shrink: 0;
+}
+
+.sg-tip-ign {
+  background:    transparent;
+  border:        none;
+  color:         #71717A;
+  cursor:        pointer;
+  font-size:     13px;
+  padding:       2px 4px;
+  border-radius: 4px;
+  line-height:   1;
+  transition:    color 0.12s, background 0.12s;
+}
+
+.sg-tip-ign:hover  { color: #fff; background: #3F3F46; }
+
+.sg-tip-none {
+  color:     #71717A;
+  font-size: 12px;
+  padding:   2px 4px;
+}
+
+/* ── Panel container ────────────────────────────────────────── */
+
+#scheckerge-panel {
+  position:      fixed;
+  top:           52px;
+  right:         14px;
+  width:         288px;
+  max-height:    88vh;
+  z-index:       2147483646;
+  background:    #FFFFFF;
+  border:        1px solid #E4E4E7;
+  border-radius: 12px;
+  box-shadow:    0 12px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.06);
+  font-family:   "Noto Sans Georgian", "Sylfaen", system-ui, sans-serif;
+  font-size:     13px;
+  color:         #18181B;
+  user-select:   none;
+  display:       flex;
+  flex-direction: column;
+  overflow:      hidden;
+}
+
+#scheckerge-panel.sg-hidden { display: none; }
+
+#scheckerge-panel.sg-collapsed #sg-chars,
+#scheckerge-panel.sg-collapsed #sg-stats,
+#scheckerge-panel.sg-collapsed #sg-acc-bar,
+#scheckerge-panel.sg-collapsed #sg-tabs,
+#scheckerge-panel.sg-collapsed #sg-body {
   display: none;
 }
 
-#scheckerge-panel-header {
-  background: linear-gradient(to right, #000080, #1084d0);
-  color: #fff;
-  padding: 3px 6px;
-  display: flex;
+/* ── Header ─────────────────────────────────────────────────── */
+
+#sg-hdr {
+  background:      #18181B;
+  color:           #FAFAFA;
+  padding:         10px 10px 10px 13px;
+  display:         flex;
+  align-items:     center;
   justify-content: space-between;
-  align-items: center;
-  cursor: move;
-  font-size: 11px;
-  font-weight: bold;
+  cursor:          move;
+  flex-shrink:     0;
+  border-radius:   11px 11px 0 0;
 }
 
-#scheckerge-panel-close {
-  background: #d4d0c8;
-  border: 1px solid;
-  border-color: #ffffff #808080 #808080 #ffffff;
-  width: 16px;
-  height: 14px;
-  font-size: 10px;
-  cursor: pointer;
-  display: flex;
+#sg-brand {
+  display:     flex;
   align-items: center;
+  gap:         9px;
+}
+
+#sg-brand-mark {
+  width:         28px;
+  height:        28px;
+  background:    #6366F1;
+  border-radius: 7px;
+  display:       flex;
+  align-items:   center;
   justify-content: center;
-  color: #000;
+  font-size:     14px;
+  font-weight:   800;
+  flex-shrink:   0;
 }
 
-#scheckerge-panel-close:hover {
-  background: #c0c0c0;
+#sg-brand-name {
+  font-size:      13px;
+  font-weight:    700;
+  letter-spacing: 0.2px;
 }
 
-#scheckerge-panel-stats {
-  display: flex;
-  gap: 8px;
-  padding: 6px 8px;
-  border-bottom: 1px solid #808080;
-  background: #ece9d8;
+#sg-brand-sub {
+  font-size:  9px;
+  opacity:    0.55;
+  margin-top: 1px;
 }
 
-.scheckerge-stat {
-  text-align: center;
-  flex: 1;
+#sg-hdr-btns { display: flex; gap: 3px; }
+
+.sg-hbtn {
+  width:         20px;
+  height:        20px;
+  border:        none;
+  border-radius: 4px;
+  background:    rgba(255,255,255,0.08);
+  color:         #A1A1AA;
+  cursor:        pointer;
+  font-size:     13px;
+  line-height:   1;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  transition:    background 0.12s, color 0.12s;
 }
 
-.scheckerge-stat-num {
-  display: block;
-  font-size: 16px;
-  font-weight: bold;
-  color: #000080;
+.sg-hbtn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+/* ── Action toolbar (replaces footer) ───────────────────────── */
+
+#sg-toolbar {
+  display:        flex;
+  gap:            5px;
+  padding:        7px 10px;
+  background:     #FAFAFA;
+  border-bottom:  1px solid #E4E4E7;
+  flex-shrink:    0;
 }
 
-.scheckerge-stat-label {
-  font-size: 9px;
-  color: #666;
+.sg-action-btn {
+  flex:          1;
+  padding:       6px 8px;
+  border-radius: 7px;
+  font-size:     11px;
+  font-family:   inherit;
+  font-weight:   600;
+  cursor:        pointer;
+  border:        1px solid #E4E4E7;
+  background:    #fff;
+  color:         #3F3F46;
+  transition:    background 0.12s, border-color 0.12s, transform 0.08s;
+  white-space:   nowrap;
 }
 
-#scheckerge-panel-body {
-  padding: 4px;
-  max-height: calc(80vh - 100px);
-  overflow-y: auto;
+.sg-action-btn:hover    { background: #F4F4F5; border-color: #D4D4D8; }
+.sg-action-btn:active   { transform: scale(0.96); }
+
+.sg-action-primary {
+  background:   #6366F1;
+  color:        #fff;
+  border-color: #6366F1;
 }
 
-.scheckerge-error-item {
-  background: #fff;
-  border: 1px solid #808080;
-  margin-bottom: 3px;
-  padding: 4px 6px;
+.sg-action-primary:hover {
+  background:   #4F46E5;
+  border-color: #4F46E5;
 }
 
-.scheckerge-error-word {
-  color: #c00;
-  font-weight: bold;
-  text-decoration: underline wavy #c00;
+/* ── Georgian chars bar ─────────────────────────────────────── */
+
+#sg-chars {
+  display:       flex;
+  align-items:   center;
+  gap:           2px;
+  padding:       4px 10px 5px;
+  background:    #fff;
+  border-bottom: 1px solid #E4E4E7;
+  flex-shrink:   0;
 }
 
-.scheckerge-error-count {
-  color: #666;
-  font-size: 10px;
-  margin-left: 4px;
+.sg-ch {
+  height:        26px;
+  min-width:     26px;
+  padding:       0 5px;
+  border:        1px solid transparent;
+  border-radius: 5px;
+  background:    transparent;
+  color:         #3F3F46;
+  cursor:        pointer;
+  font-size:     14px;
+  font-family:   inherit;
+  line-height:   1;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  transition:    background 0.1s, border-color 0.1s;
 }
 
-.scheckerge-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 4px;
+.sg-ch:hover   { background: #F4F4F5; border-color: #E4E4E7; }
+.sg-ch:active  { background: #EEF2FF; border-color: #6366F1; color: #4F46E5; }
+.sg-ch-sm      { font-size: 12px; }
+
+.sg-ch-sep {
+  width:        1px;
+  height:       16px;
+  background:   #E4E4E7;
+  margin:       0 2px;
+  flex-shrink:  0;
 }
 
-.scheckerge-suggestion {
-  background: #ece9d8;
-  border: 1px solid;
-  border-color: #fff #808080 #808080 #fff;
-  padding: 1px 6px;
-  cursor: pointer;
-  font-size: 11px;
+/* ── Stats bar ──────────────────────────────────────────────── */
+
+#sg-stats {
+  display:       flex;
+  padding:       7px 10px 4px;
+  gap:           4px;
+  flex-shrink:   0;
 }
 
-.scheckerge-suggestion:hover {
-  background: #000080;
-  color: #fff;
+.sg-stat {
+  flex:       1;
+  display:    flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-#scheckerge-panel-footer {
-  padding: 4px 8px;
-  border-top: 1px solid #808080;
-  background: #d4d0c8;
-  display: flex;
-  gap: 4px;
+.sg-snum {
+  font-size:   20px;
+  font-weight: 800;
+  line-height: 1.1;
+  color:       #6366F1;
 }
 
-.scheckerge-btn {
-  background: #d4d0c8;
-  border: 2px solid;
-  border-color: #ffffff #808080 #808080 #ffffff;
-  padding: 2px 8px;
-  font-size: 11px;
-  cursor: pointer;
-  font-family: inherit;
+.sg-snum-err { color: #E53E3E; }
+.sg-snum-ok  { color: #059669; }
+
+.sg-slbl {
+  font-size:  9px;
+  color:      #A1A1AA;
+  margin-top: 1px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.scheckerge-btn:hover {
-  background: #c0c0c0;
+/* ── Accuracy bar ───────────────────────────────────────────── */
+
+#sg-acc-bar {
+  height:        4px;
+  background:    #E4E4E7;
+  margin:        2px 10px 7px;
+  border-radius: 2px;
+  overflow:      hidden;
+  flex-shrink:   0;
 }
 
-.scheckerge-btn:active {
-  border-color: #808080 #ffffff #ffffff #808080;
+#sg-acc-fill {
+  height:     100%;
+  border-radius: 2px;
+  background: #059669;
+  transition: width 0.4s ease, background 0.4s;
+  width:      0%;
 }
 
-/* Подчёркивание ошибок в textarea/contenteditable */
-.scheckerge-highlight-container {
-  position: relative;
+/* ── Tabs ───────────────────────────────────────────────────── */
+
+#sg-tabs {
+  display:       flex;
+  border-bottom: 1px solid #E4E4E7;
+  flex-shrink:   0;
 }
 
-.scheckerge-underline {
-  position: absolute;
-  pointer-events: none;
-  border-bottom: 2px wavy #c00;
-  z-index: 100;
+.sg-tab {
+  flex:          1;
+  padding:       6px 4px 5px;
+  border:        none;
+  background:    transparent;
+  color:         #A1A1AA;
+  font-size:     10px;
+  font-family:   inherit;
+  font-weight:   500;
+  cursor:        pointer;
+  border-bottom: 2px solid transparent;
+  transition:    color 0.12s, border-color 0.12s;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  gap:           3px;
 }
 
-/* Мини-значок загрузки */
-#scheckerge-loading {
-  text-align: center;
-  padding: 12px;
-  color: #666;
+.sg-tab:hover      { color: #3F3F46; }
+
+.sg-tab-active {
+  color:              #6366F1;
+  border-bottom-color: #6366F1;
+  font-weight:        700;
+}
+
+.sg-badge {
+  background:    #E53E3E;
+  color:         #fff;
+  border-radius: 10px;
+  font-size:     8px;
+  font-weight:   700;
+  padding:       0 4px;
+  min-width:     13px;
+  text-align:    center;
+  display:       none;
+}
+
+.sg-badge-on  { display: inline-block; }
+.sg-badge-w   { background: #D97706; }
+.sg-badge-i   { background: #0284C7; }
+
+/* ── Panel body ─────────────────────────────────────────────── */
+
+#sg-body {
+  flex:           1;
+  overflow-y:     auto;
+  min-height:     50px;
+  max-height:     calc(88vh - 270px);
+  scrollbar-width: thin;
+  scrollbar-color: #D4D4D8 transparent;
+}
+
+#sg-body::-webkit-scrollbar       { width: 3px; }
+#sg-body::-webkit-scrollbar-thumb { background: #D4D4D8; border-radius: 3px; }
+
+/* ── Loading ────────────────────────────────────────────────── */
+
+#sg-load {
+  display:        flex;
+  align-items:    center;
+  justify-content: center;
+  gap:            8px;
+  padding:        18px;
+  color:          #A1A1AA;
+  font-size:      11px;
+}
+
+#sg-load.sg-hidden { display: none; }
+
+.sg-spin {
+  width:         16px;
+  height:        16px;
+  border:        2px solid #E4E4E7;
+  border-top-color: #6366F1;
+  border-radius: 50%;
+  animation:     sg-spin 0.65s linear infinite;
+  flex-shrink:   0;
+}
+
+@keyframes sg-spin { to { transform: rotate(360deg); } }
+
+/* ── Error cards ────────────────────────────────────────────── */
+
+#sg-list { padding: 5px 8px 8px; }
+
+.sg-card {
+  border:        1px solid #E4E4E7;
+  border-left:   3px solid #E53E3E;
+  border-radius: 7px;
+  padding:       7px 9px;
+  margin-bottom: 5px;
+  background:    #fff;
+}
+
+.sg-card:last-child { margin-bottom: 0; }
+
+.sg-card-stop { border-left-color: #6366F1; }
+
+.sg-card-top {
+  display:     flex;
+  align-items: baseline;
+  gap:         5px;
+  flex-wrap:   wrap;
+  margin-bottom: 5px;
+}
+
+.sg-word {
+  color:           #E53E3E;
+  font-weight:     700;
+  font-size:       14px;
+  text-decoration: underline wavy rgba(229,62,62,0.5);
+  text-underline-offset: 2px;
+}
+
+.sg-cnt {
+  font-size:  10px;
+  color:      #A1A1AA;
+  background: #F4F4F5;
+  border:     1px solid #E4E4E7;
+  border-radius: 10px;
+  padding:    0 5px;
+}
+
+.sg-base {
+  font-size:  10px;
+  color:      #0284C7;
   font-style: italic;
 }
+
+.sg-chips {
+  display:    flex;
+  flex-wrap:  wrap;
+  gap:        4px;
+}
+
+.sg-chip {
+  background:    #EEF2FF;
+  color:         #4F46E5;
+  border:        1px solid #C7D2FE;
+  border-radius: 20px;
+  padding:       2px 10px;
+  font-size:     11px;
+  font-family:   inherit;
+  cursor:        pointer;
+  transition:    background 0.1s, color 0.1s;
+}
+
+.sg-chip:hover {
+  background: #6366F1;
+  color:      #fff;
+  border-color: #6366F1;
+}
+
+.sg-nosug {
+  font-size:  11px;
+  color:      #A1A1AA;
+  font-style: italic;
+}
+
+/* ── Typography cards ───────────────────────────────────────── */
+
+.sg-typo-card {
+  display:       flex;
+  gap:           7px;
+  align-items:   flex-start;
+  padding:       6px 9px;
+  background:    #FFFBEB;
+  border:        1px solid #FDE68A;
+  border-left:   3px solid #D97706;
+  border-radius: 7px;
+  margin-bottom: 5px;
+  font-size:     11px;
+  color:         #78350F;
+  line-height:   1.45;
+}
+
+.sg-typo-ico { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Stopword cards ─────────────────────────────────────────── */
+
+.sg-stopmsg {
+  display:    block;
+  color:      #A1A1AA;
+  font-size:  10px;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* ── OK state ───────────────────────────────────────────────── */
+
+.sg-ok {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  padding:     16px 12px;
+  color:       #059669;
+  font-weight: 600;
+  font-size:   12px;
+}
+
+.sg-ok-ico {
+  width:         26px;
+  height:        26px;
+  background:    #ECFDF5;
+  border-radius: 50%;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  font-size:     14px;
+  flex-shrink:   0;
+}
+
+/* ── Notices ────────────────────────────────────────────────── */
+
+.sg-notice {
+  font-size:  9px;
+  color:      #A1A1AA;
+  text-align: center;
+  padding:    4px 8px 2px;
+  font-style: italic;
+}
+
+.sg-net-err {
+  padding:    14px 12px;
+  color:      #E53E3E;
+  font-size:  12px;
+}
+
+/* ── Global box-sizing ──────────────────────────────────────── */
+
+#scheckerge-panel * { box-sizing: border-box; }

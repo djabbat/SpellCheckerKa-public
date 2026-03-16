@@ -38,6 +38,13 @@ window.escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// HTML სიმბოლოების ესკეიპინგი XSS-ისგან დასაცავად
+window.escapeHtml = function(str) {
+  const el = document.createElement('div');
+  el.textContent = String(str);
+  return el.innerHTML;
+}
+
 // კურსორის დასაწყისში გადატანის ფუნქცია
 window.moveCursorToStart = function(element) {
   if (!element) return;
@@ -246,7 +253,7 @@ function performLocalSpellCheck(text, savedCaretOffset) {
     const cleanWord = word.replace(/[.,!?;:()]/g, '').toLowerCase();
     if (cleanWord.length > 1 && !georgianDictionary.has(cleanWord)) {
       errors.push({
-        word: word,
+        word: cleanWord,
         count: 1,
         suggestions: []
       });
@@ -298,7 +305,7 @@ function highlightErrorsInText() {
     const regex = new RegExp(`(^|\\s|>|\\(|\\[)(${escapedWord})(?=\\s|$|[\\.\\,\\!\\?\\;\\:\\)\\]\\>])`, 'gi');
     
     newHTML = newHTML.replace(regex, (match, before, word) => {
-      return before + `<span class="misspelled" data-word="${error.word}" onclick="window.showSuggestionsMenu('${error.word.replace(/'/g, "\\'")}', event)">${word}</span>`;
+      return before + `<span class="misspelled" data-word="${escapeHtml(error.word)}">${escapeHtml(word)}</span>`;
     });
   });
 
@@ -334,30 +341,43 @@ window.showSuggestionsMenu = function(word, event) {
   const rect = event.target.getBoundingClientRect();
   const scrollX = window.scrollX || window.pageXOffset;
   const scrollY = window.scrollY || window.pageYOffset;
-  
-  const x = rect.left + scrollX;
-  const y = rect.bottom + scrollY;
 
-  suggestionsMenu.style.left = x + 'px';
-  suggestionsMenu.style.top = y + 'px';
+  suggestionsMenu.style.left = (rect.left + scrollX) + 'px';
+  suggestionsMenu.style.top  = (rect.bottom + scrollY) + 'px';
 
-  suggestionsMenu.innerHTML = `
-    <div class="suggestions-header">
-      <span>შემოთავაზებები: "${word}"</span>
-      <button class="close-btn" onclick="window.hideSuggestionsMenu()">×</button>
-    </div>
-    <div class="suggestions-list">
-      ${error.suggestions.length > 0 ?
-        error.suggestions.map(suggestion => `
-          <div class="suggestion-item" onclick="window.replaceWord('${word.replace(/'/g, "\\'")}', '${suggestion.replace(/'/g, "\\'")}')">
-            ${suggestion}
-          </div>
-        `).join('') :
-        '<div class="no-suggestions">შემოთავაზებები არ არის</div>'
-      }
-    </div>
-  `;
+  // Header — textContent უსაფრთხოდ ჩასმისთვის
+  const header = document.createElement('div');
+  header.className = 'suggestions-header';
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = `შემოთავაზებები: "${word}"`;
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'close-btn';
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', () => hideSuggestionsMenu());
+  header.appendChild(titleSpan);
+  header.appendChild(closeBtn);
 
+  // Suggestions list
+  const list = document.createElement('div');
+  list.className = 'suggestions-list';
+
+  if (error.suggestions.length > 0) {
+    error.suggestions.forEach(suggestion => {
+      const item = document.createElement('div');
+      item.className = 'suggestion-item';
+      item.textContent = suggestion;
+      item.addEventListener('click', () => replaceWord(word, suggestion));
+      list.appendChild(item);
+    });
+  } else {
+    const noSug = document.createElement('div');
+    noSug.className = 'no-suggestions';
+    noSug.textContent = 'შემოთავაზებები არ არის';
+    list.appendChild(noSug);
+  }
+
+  suggestionsMenu.appendChild(header);
+  suggestionsMenu.appendChild(list);
   document.body.appendChild(suggestionsMenu);
 
   // Event listener-ის დამატება მენიუს დასახურად
@@ -465,19 +485,23 @@ function displayResults(errors) {
   `;
 
   errors.forEach(error => {
+    const suggestionsHtml = error.suggestions.length > 0
+      ? `<div class="suggestions">
+           ${error.suggestions.map(s =>
+             `<button class="suggestion-btn"
+                      data-old="${escapeHtml(error.word)}"
+                      data-new="${escapeHtml(s)}">
+               ${escapeHtml(s)}
+             </button>`
+           ).join('')}
+         </div>`
+      : '<div class="no-suggestions-text">შემოთავაზებები არ არის</div>';
+
     html += `
       <div class="error-item">
-        <div class="error-word">${error.word}</div>
-        <div class="error-count">გვხვდება: ${error.count} ჯერ</div>
-        ${error.suggestions.length > 0 ? `
-          <div class="suggestions">
-            ${error.suggestions.map(suggestion => `
-              <button class="suggestion-btn" onclick="window.replaceWord('${error.word.replace(/'/g, "\\'")}', '${suggestion.replace(/'/g, "\\'")}')">
-                ${suggestion}
-              </button>
-            `).join('')}
-          </div>
-        ` : '<div class="no-suggestions-text">შემოთავაზებები არ არის</div>'}
+        <div class="error-word">${escapeHtml(error.word)}</div>
+        <div class="error-count">გვხვდება: ${escapeHtml(String(error.count))} ჯერ</div>
+        ${suggestionsHtml}
       </div>
     `;
   });
@@ -521,6 +545,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
   let checkTimeout;
   let isComposing = false;
+
+  // Event delegation — .misspelled სიტყვებზე კლიკი (onclick-ის ნაცვლად)
+  editor.addEventListener('click', function(e) {
+    const span = e.target.closest('.misspelled');
+    if (span && span.dataset.word) {
+      showSuggestionsMenu(span.dataset.word, e);
+    }
+  });
+
+  // Event delegation — შემოთავაზებების ღილაკები results პანელში
+  const resultsContainer = document.getElementById('results');
+  if (resultsContainer) {
+    resultsContainer.addEventListener('click', function(e) {
+      const btn = e.target.closest('.suggestion-btn');
+      if (btn && btn.dataset.old && btn.dataset.new) {
+        replaceWord(btn.dataset.old, btn.dataset.new);
+      }
+    });
+  }
 
   // ედიტორის ცვლილებების დამუშავება
   editor.addEventListener('input', function(e) {

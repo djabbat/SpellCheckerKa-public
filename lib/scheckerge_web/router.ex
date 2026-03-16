@@ -7,11 +7,21 @@ defmodule ScheckergeWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {ScheckergeWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; " <>
+        "script-src 'self'; " <>
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " <>
+        "font-src 'self' https://fonts.gstatic.com; " <>
+        "connect-src 'self' ws: wss:; " <>
+        "img-src 'self' data:; " <>
+        "frame-ancestors 'none'"
+    }
   end
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug ScheckergeWeb.Plugs.RateLimiter
   end
 
   scope "/", ScheckergeWeb do
@@ -23,7 +33,7 @@ defmodule ScheckergeWeb.Router do
   scope "/api", ScheckergeWeb do
     pipe_through :api
 
-    post    "/check", SpellController, :check
-    options "/check", SpellController, :options
+    post    "/check",  SpellController, :check
+    options "/check",  SpellController, :options
   end
 end

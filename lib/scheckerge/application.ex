@@ -7,6 +7,8 @@ defmodule Scheckerge.Application do
 
   @impl true
   def start(_type, _args) do
+    :ets.new(:rate_limit, [:named_table, :set, :public, {:write_concurrency, true}])
+
     children = [
       ScheckergeWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:scheckerge, :dns_cluster_query) || :ignore},
@@ -14,6 +16,7 @@ defmodule Scheckerge.Application do
       # Start the Finch HTTP client for sending emails
       {Finch, name: Scheckerge.Finch},
       Scheckerge.Dictionary,
+      Scheckerge.RateLimiterCleaner,
       # Start to serve requests, typically the last entry
       ScheckergeWeb.Endpoint
     ]
