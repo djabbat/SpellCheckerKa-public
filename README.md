@@ -1,174 +1,184 @@
-# ႤႱႹႤႩႤႰႿႨ - ქართული მართლწერის შემოწმება
+# ႫႠႰႧႪႼႤႰႠ — ქართული მართლწერის შემოწმება
 
-🇬🇪 **SCheckerGe** არის ვებ-აპლიკაცია ქართული ტექსტების მართლწერის ავტომატური შემოწმებისთვის, რომელიც აგებულია Phoenix Framework-ზე.
+**ႫႠႰႧႪႼႤႰႠ** არის ვებ-აპლიკაცია ქართული ტექსტების მართლწერის შემოწმებისთვის, აგებული Phoenix Framework-ზე (Elixir). მხარდაჭერა 993 589 სიტყვის ლექსიკონით, მორფოლოგიური ანალიზით და .docx ფაილების იმპორტ/ექსპორტით.
 
-## ✨ მთავარი ფუნქციონალი
+## ფუნქციონალი
 
-- 🔍 **ავტომატური მართლწერის შემოწმება** - ტექსტის აკრეფისას რეალურ დროში
-- 📝 **შეცდომების ვიზუალური ხაზგასმა** - წითელი ტალღისებრი ხაზებით
-- 💡 **შემოთავაზებების სისტემა** - დააწკაპუნეთ შეცდომაზე სწორი ვარიანტების სანახავად
-- 📊 **სტატისტიკა** - სიტყვების რაოდენობა, შეცდომები და სიზუსტე
-- 📚 **გარე ლექსიკონის მხარდაჭერა** - ჩატვირთეთ საკუთარი ლექსიკონი .txt ფორმატში
-- 🎨 **Microsoft Windows კლასიკური ინტერფეისი** - ნაცნობი და მარტივი გამოყენება
+- **რეალურ დროში შემოწმება** — ტექსტის შეყვანისას ავტომატური ანალიზი (ადაპტური დებაუნსი: 500 მწმ–2.5 წმ ტექსტის ზომის მიხედვით)
+- **Overlay-ხაზგასმა** — შეცდომები მოინიშნება პირდაპირ ტექსტში წითელი ჩარჩოთი (mirror-overlay ტექნიკა — textarea+div, არა contenteditable)
+- **Hover-მენიუ** — მაუსის მიახლოება შეცდომაზე გამოაჩენს dropdown-ს შემოთავაზებებით
+- **ჩანაცვლება** — კლიკი შემოთავაზებაზე ცვლის სიტყვას პირდაპირ textarea-ში
+- **ლექსიკონში დამატება** — "დაამატე ლექსიკონში" ამატებს სიტყვას ETS-ში და ინახავს `user_words.txt`-ში (გადარჩება სერვერის გადაქცევის შემდეგ)
+- **სტატისტიკა** — სიტყვათა რაოდენობა, შეცდომები, სიზუსტე
+- **ტიპოგრაფიის შემოწმება** — ორმაგი სფასები, ბრჭყალები, გრძელი ტირე და სხვ.
+- **სტოპ-სიტყვები** — გამავსებელი სიტყვების აღმოჩენა
+- **.docx გახსნა** — Word ფაილის ჩატვირთვა, ტექსტის ექსტრაქცია (fflate + DOMParser)
+- **.docx შენახვა** — ტექსტის ექსპორტი სრულფასოვან Word ფაილად (fflate ZIP + Word XML)
+- **გარე ლექსიკონი** — .txt ფაილის ჩატვირთვა სესიისთვის
+- **მობილური** — ადაპტური ლეიაუტი (≤768px)
 
-## 🚀 დაყენება და გაშვება
+## ინტერფეისი
 
-### წინაპირობები
-
-- Elixir 1.14+
-- Erlang OTP 25+
-- Phoenix Framework 1.7+
-- Node.js (assets-ისთვის)
-
-### ინსტალაცია
-
-1. **რეპოზიტორის კლონირება**
-
-```bash
-git clone <repository-url>
-cd scheckerge
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Ⴋ ႫႠႰႧႪႼႤႰႠ   ავტო | გახსენი | დაიმახსოვრე | + ლექსიკონი │
+│                                    გასუფთავება | შემოწმება  │
+├──────────────────────────────┬───────────────────────────────┤
+│  textarea (overlay mirror)   │  სტატისტიკა                  │
+│  [ტექსტი შეცდომებით]        │  სიტყვები / შეცდომები / %    │
+│                              │  ─────────────────────────── │
+│  hover → dropdown:           │  შეცდომების სია              │
+│  ┌─────────────────┐        │  [სიტყვა] [×2]               │
+│  │ შეცდომა         │        │  [variant1] [variant2]        │
+│  │ ─────────────── │        │                               │
+│  │ variant1        │        │  ტიპოგრაფია                   │
+│  │ variant2        │        │  სტოპ-სიტყვები                │
+│  │ + ლექსიკონში    │        │                               │
+│  └─────────────────┘        │                               │
+├──────────────────────────────┴───────────────────────────────┤
+│  სტატუსი                                        © 2025 2sco │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-1. **დამოკიდებულებების ინსტალაცია**
+## ტექნოლოგიები
+
+| ფენა | ტექნოლოგია |
+|------|------------|
+| Backend | Elixir 1.14+, Phoenix 1.7, Bandit HTTP |
+| ლექსიკონი | ETS (142 285 სიტყვა, Hunspell ka_GE), GenServer |
+| მორფოლოგია | სუფიქსების სტრიპინგი, ქართული ბრუნება |
+| სუგესტიები | Levenshtein + ქართული ასოების კონფუზიის ცხრილი |
+| Rate limiting | ETS-based, 30 req/min per IP |
+| Frontend | Vanilla JS (ES2017), Tailwind CSS, Phoenix LiveView socket |
+| .docx | fflate (ZIP), DOMParser (XML) |
+| CORS | სრული, OPTIONS preflight |
+
+## გაშვება
 
 ```bash
+# 1. დამოკიდებულებები
 mix deps.get
 cd assets && npm install && cd ..
-```
 
-1. **ბაზის კონფიგურაცია** (საჭიროების შემთხვევაში)
+# 2. Assets-ის build
+mix assets.build
 
-```bash
-mix ecto.setup
-```
-
-1. **სერვერის გაშვება**
-
-```bash
+# 3. სერვერი
 mix phx.server
+# → http://localhost:4000
 ```
 
-1. **ბრაუზერში გახსნა**
-
-```http://localhost:4000
-```
-
-## 🛠️ ტექნოლოგიები
-
-### Backend
-
-- **Phoenix Framework** - Elixir-ზე დაფუძნებული ვებ-ფრეიმვორქი
-- **Elixir** - ფუნქციონალური პროგრამირების ენა
-- **REST API** - JSON-based API მართლწერის შემოწმებისთვის
-
-### Frontend
-
-- **HTML5/CSS3** - სემანტიკური მარკაპი და სტილები
-- **Vanilla JavaScript** - კლიენტის ლოგიკა
-- **CSS Grid/Flexbox** - რესპონსიული ლეაუტი
-
-### სტილი
-
-- **Microsoft Windows კლასიკური თემა** - ნაცნობი ინტერფეისი
-- **ქართული ტიპოგრაფია** - Noto Sans Georgian ფონტის მხარდაჭერა
-
-## 📖 გამოყენება
-
-### ძირითადი ოპერაციები
-
-1. **ტექსტის შეყვანა**: დაწერეთ ან ჩასვით ქართული ტექსტი მარცხენა პანელში
-2. **ავტომატური შემოწმება**: სისტემა ავტომატურად ამოწმებს მართლწერას აკრეფისას
-3. **შეცდომების ნახვა**: შეცდომები მონიშნულია წითელი ტალღისებრი ხაზებით
-4. **შემოთავაზებები**: დააწკაპუნეთ შეცდომაზე სწორი ვარიანტების სანახავად
-5. **ჩანაცვლება**: აირჩიეთ შემოთავაზება შეცდომის ასატანად
-
-### ლექსიკონის მენეჯმენტი
-
-1. **ლექსიკონის ჩატვირთვა**: დააწკაპუნეთ "ლექსიკონის ჩატვირთვა" ღილაკს
-2. **ფაილის არჩევა**: აირჩიეთ .txt ფაილი სიტყვების სიით
-3. **ფორმატი**: თითოეული სიტყვა ცალკე ხაზზე, კომენტარები #-ით
-
-### მართლწერის კონტროლი
-
-- **ჩართვა/გამორთვა**: "მართლწერა: ჩართული" ღილაკით
-- **სტატისტიკა**: მარჯვენა პანელში ხედავთ სიტყვების რაოდენობას, შეცდომებს და სიზუსტეს
-
-## 🏗️ არქიტექტურა
-
-### კომპონენტები
-
-```SCheckerGe/
-├── lib/
-│   ├── scheckerge_web/
-│   │   ├── controllers/
-│   │   │   └── spell_controller.ex
-│   │   ├── templates/
-│   │   │   └── home.html.heex
-│   │   └── router.ex
-│   └── scheckerge/
-├── assets/
-│   ├── css/
-│   │   └── app.css
-│   └── js/
-│       └── app.js
-└── config/
-```
-
-### API ენდპოინტები
-
-- `POST /api/check` - ტექსტის მართლწერის შემოწმება
-- `GET /` - მთავარი გვერდი
-
-## 🔧 კონფიგურაცია
-
-### გარემოს ცვლადები
-
-```elixir
-# config/runtime.exs
-import Config
-
-config :scheckerge, ScheckergeWeb.Endpoint,
-  url: [host: System.get_env("HOST", "localhost")],
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
-```
-
-### პროდაქშენის დეპლოიმენტი
+### Production
 
 ```bash
-MIX_ENV=prod mix do deps.get, compile, phx.digest
-MIX_ENV=prod mix phx.server
+MIX_ENV=prod mix do deps.get, compile, assets.deploy
+SECRET_KEY_BASE=<key> PHX_HOST=example.com mix phx.server
 ```
 
-## 🤝 წვლილის შეტანა
+### Docker
 
-მივიღებთ წვლილს! გთხოვთ:
+```bash
+docker-compose up
+```
 
-1. Fork-ის გაკეთება
-2. Feature branch-ის შექმნა (`git checkout -b feature/amazing-feature`)
-3. ცვლილებების commit-ება (`git commit -m 'Add amazing feature'`)
-4. Branch-ის push-ება (`git push origin feature/amazing-feature`)
-5. Pull Request-ის გახსნა
+## API
 
-## 📄 ლიცენზია
+| Endpoint | Method | აღწერა |
+|----------|--------|--------|
+| `GET /` | GET | მთავარი გვერდი |
+| `POST /api/check` | POST | ტექსტის შემოწმება (JSON) |
+| `OPTIONS /api/check` | OPTIONS | CORS preflight |
+| `POST /api/dictionary/add` | POST | სიტყვის დამატება ლექსიკონში |
+| `OPTIONS /api/dictionary/add` | OPTIONS | CORS preflight |
 
-ეს პროექტი ლიცენზირებულია MIT ლიცენზიით - იხილეთ [LICENSE](LICENSE) ფაილი დეტალებისთვის.
+### POST /api/check
 
-## 👥 მწარმოებლები
+```json
+// Request
+{ "text": "ქართული ტექსტი..." }
 
-- **2sco** - დეველოპმენტი და დიზაინი
-- **© 2025** - ყველა უფლება დაცულია
+// Response
+{
+  "total_words": 42,
+  "error_count": 3,
+  "accuracy": 92.8,
+  "errors": [
+    { "word": "შეიყვანეთ", "count": 1, "suggestions": ["შეიყვანე", "შეიყვანება"] }
+  ],
+  "typography": [...],
+  "stopwords": [...]
+}
+```
 
-## 📞 კონტაქტი
+### POST /api/dictionary/add
 
-- **Issues**: [GitHub Issues](https://github.com/2sco/scheckerge/issues)
-- **Email**: <info@2sco.ge>
+```json
+// Request
+{ "word": "ახალისიტყვა" }
 
-## 🙏 მადლობა
+// Response
+{ "ok": true, "word": "ახალისიტყვა" }
+```
 
-- **Phoenix Framework** თიმს შესანიშნავი ფრეიმვორქისთვის
-- **Elixir** კომიუნიტისთვის
-- **ქართული ენის** ენთუზიასტებს ტესტირებაში დახმარებისთვის
+## არქიტექტურა
 
----
+```
+lib/
+├── scheckerge/
+│   ├── application.ex          OTP Application, Supervisor
+│   ├── dictionary.ex           ETS ლექსიკონი + Levenshtein სუგესტიები
+│   │                           + add_word/1 (ETS + user_words.txt)
+│   ├── morphology.ex           ქართული მორფოლოგიური ანალიზატორი
+│   └── rate_limiter_cleaner.ex Rate-limit ETS-ის გასუფთავება (5 წთ)
+│
+└── scheckerge_web/
+    ├── router.ex               მარშრუტები
+    ├── controllers/
+    │   ├── page_controller.ex  GET /
+    │   └── spell_controller.ex POST /api/check, POST /api/dictionary/add
+    ├── plugs/
+    │   └── rate_limiter.ex     30 req/min per IP
+    └── components/layouts/
+        ├── root.html.heex      HTML shell
+        └── app.html.heex       Flash messages
 
-**SCheckerGe** - თქვენი სანდო პარტნიორი ქართული მართლწერის შემოწმებაში! ✍️✅
+assets/
+├── js/app.js                   ~300 ხაზი: mirror overlay, tooltip, docx, auto-check
+├── css/app.css                 მინიმალისტური დიზაინი (Georgian red accent)
+└── package.json                fflate (ZIP/docx)
+
+priv/static/dictionaris/
+├── ge.txt                      993 589 სიტყვა (base dictionary)
+└── user_words.txt              მომხმარებლის დამატებული სიტყვები (auto-created)
+```
+
+## Mirror Overlay ტექნიკა
+
+contenteditable-ის ნაცვლად გამოყენებულია mirror-overlay:
+
+```
+┌─── editor-wrap (position: relative) ─────────────────┐
+│  #mirror  (position: absolute, z-index: 2)           │
+│           color: transparent                          │
+│           pointer-events: none                        │
+│           <mark> ← pointer-events: auto (hover!)     │
+│                                                       │
+│  #input   (position: absolute, z-index: 1)           │
+│           background: transparent                     │
+│           textarea — cursor, typing, scroll native    │
+└───────────────────────────────────────────────────────┘
+```
+
+უპირატესობები: კურსორის მართვა ბრაუზერს აქვს გადაცემული, IME-თავსებადობა, undo/redo ნატიური, XSS-საფრთხე მინიმალური.
+
+## ლექსიკონი
+
+- **ge.txt** — 993 589 სიტყვა, ჩაიტვირთება ETS-ში სერვერის გაშვებისას (~200 ms)
+- **user_words.txt** — მომხმარებლის სიტყვები, auto-append, ჩაიტვირთება სტარტზე
+- **Morphology** — ვალიდური მოქნილი ფორმები: "სახლებში" → "სახლი" ✓
+- **Levenshtein** — max distance 4, ადრეული გამოსვლა ოპტიმიზაციით
+- **Confusion table** — ს↔შ, კ↔ქ, დ↔თ და სხვ. ფონეტიკური კანდიდატები
+
+## ლიცენზია
+
+MIT — © 2025 2sco

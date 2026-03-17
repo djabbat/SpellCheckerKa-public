@@ -16,6 +16,7 @@ defmodule Scheckerge.Application do
       # Start the Finch HTTP client for sending emails
       {Finch, name: Scheckerge.Finch},
       Scheckerge.Dictionary,
+      Scheckerge.LangDictionary,
       Scheckerge.RateLimiterCleaner,
       # Start to serve requests, typically the last entry
       ScheckergeWeb.Endpoint

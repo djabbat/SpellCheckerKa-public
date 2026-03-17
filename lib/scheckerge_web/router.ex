@@ -35,7 +35,9 @@ defmodule ScheckergeWeb.Router do
 
     post    "/check",           SpellController, :check
     options "/check",           SpellController, :options
-    post    "/dictionary/add",  SpellController, :add_word
-    options "/dictionary/add",  SpellController, :options
+    post    "/dictionary/add",    SpellController, :add_word
+    options "/dictionary/add",    SpellController, :options
+    post    "/dictionary/remove", SpellController, :remove_word
+    options "/dictionary/remove", SpellController, :options
   end
 end

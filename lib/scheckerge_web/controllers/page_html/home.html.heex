@@ -5,10 +5,20 @@
       <div class="brand-mark">Ⴋ</div>
       <div class="brand-text">
         <h1>ႫႠႰႧႪႼႤႰႠ</h1>
-        <p>ქართული მართლწერის შემოწმება</p>
+        <p id="brand-subtitle">მართლწერის შემოწმება</p>
       </div>
     </div>
     <div class="header-actions">
+      <select id="langSelect" class="lang-select">
+        <option value="ka">🇬🇪 ქართული</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="zh">🇨🇳 中文</option>
+      </select>
+      <div class="btn-separator"></div>
       <label class="auto-label">
         <input type="checkbox" id="autoCheck" checked>
         <span>ავტო</span>
@@ -26,17 +36,60 @@
   <div class="workspace">
 
     <section class="input-panel">
+      <div id="fmt-toolbar" class="fmt-toolbar">
+        <select id="fmt-style" class="fmt-select fmt-style-select" title="Paragraph style">
+          <option value="p">Normal text</option>
+          <option value="title">Title</option>
+          <option value="subtitle">Subtitle</option>
+          <option value="h1">H1</option>
+          <option value="h2">H2</option>
+          <option value="h3">H3</option>
+          <option value="h4">H4</option>
+          <option value="h5">H5</option>
+          <option value="h6">H6</option>
+          <option value="blockquote">" Quote</option>
+          <option value="pre">⌨ Code</option>
+        </select>
+        <div class="fmt-sep"></div>
+        <button class="fmt-btn" data-cmd="bold"          title="Bold"><b>B</b></button>
+        <button class="fmt-btn" data-cmd="italic"        title="Italic"><em>I</em></button>
+        <button class="fmt-btn" data-cmd="underline"     title="Underline"><u>U</u></button>
+        <button class="fmt-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+        <div class="fmt-sep"></div>
+        <select id="fmt-size" class="fmt-select" title="Font size">
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14" selected>14</option>
+          <option value="16">16</option>
+          <option value="18">18</option>
+          <option value="20">20</option>
+          <option value="24">24</option>
+          <option value="32">32</option>
+          <option value="48">48</option>
+        </select>
+        <input type="color" id="fmt-color" class="fmt-color" value="#0f172a" title="Text color">
+        <div class="fmt-sep"></div>
+        <button class="fmt-btn" data-cmd="justifyLeft"   title="Align left">⬛L</button>
+        <button class="fmt-btn" data-cmd="justifyCenter" title="Center">⬛C</button>
+        <button class="fmt-btn" data-cmd="justifyRight"  title="Align right">⬛R</button>
+        <div class="fmt-sep"></div>
+        <button class="fmt-btn" data-cmd="insertUnorderedList" title="Bullet list">≡</button>
+        <button class="fmt-btn" data-cmd="insertOrderedList"   title="Numbered list">1.</button>
+        <div class="fmt-sep"></div>
+        <button class="fmt-btn" id="fmt-clear-fmt" title="Clear formatting">✕</button>
+      </div>
+
       <div class="editor-wrap">
-        <div id="mirror" class="editor-mirror" aria-hidden="true"></div>
-        <textarea
-          id="input"
-          class="text-input"
-          placeholder="შეიყვანეთ ქართული ტექსტი მართლწერის შესამოწმებლად..."
+        <div
+          id="editor"
+          class="rich-editor"
+          contenteditable="true"
           spellcheck="false"
           autocorrect="off"
           autocomplete="off"
-          autocapitalize="off"
-        ></textarea>
+          data-placeholder="შეიყვანეთ ტექსტი..."
+        ></div>
       </div>
     </section>
 
@@ -54,13 +107,13 @@
           <span class="stat-label">სიზუსტე</span>
           <strong id="stat-accuracy">—</strong>
         </div>
-      </div>
-      <div id="results" class="results-body">
-        <div class="empty-state">
-          <div class="empty-icon">ᛃ</div>
-          <p>შეიყვანეთ შესამოწმებელი ტექსტი</p>
+        <div class="stat-row">
+          <span class="stat-label">უცხო სიტყვები</span>
+          <strong id="stat-foreign">—</strong>
         </div>
       </div>
+      <div id="results-hint" class="results-hint"></div>
+      <div id="results" class="results-body"></div>
     </section>
 
   </div>

@@ -36,6 +36,25 @@ defmodule Scheckerge.Dictionary do
   end
 
   @doc """
+  Remove a word from the live dictionary (ETS) and from user_words.txt.
+  Only user-added words (in user_words.txt) can be removed; base dictionary
+  words are kept intact.
+  """
+  def remove_word(word) do
+    w = word |> String.trim() |> String.downcase()
+    :ets.delete(@table, w)
+
+    path = Application.app_dir(:scheckerge, @user_words_path)
+    case File.read(path) do
+      {:ok, content} ->
+        updated = content |> String.split("\n", trim: true) |> Enum.reject(&(&1 == w)) |> Enum.join("\n")
+        File.write(path, updated <> "\n")
+      _ -> :ok
+    end
+    :ok
+  end
+
+  @doc """
   Add a word to the live dictionary (ETS) and persist it to user_words.txt
   so it survives server restarts.  Only Georgian Mkhedruli words accepted.
   """
