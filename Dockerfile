@@ -32,7 +32,7 @@ ENV MIX_ENV=prod
 ENV PHX_SERVER=true
 
 RUN apt-get update && apt-get install -y \
-  libssl3 libncurses6 locales \
+  libssl3 libncurses6 locales curl \
   && rm -rf /var/lib/apt/lists/*
 
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen

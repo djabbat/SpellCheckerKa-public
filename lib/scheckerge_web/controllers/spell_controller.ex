@@ -101,8 +101,12 @@ defmodule ScheckergeWeb.SpellController do
       chunks
       |> Task.async_stream(&check_text(&1, lang),
            max_concurrency: System.schedulers_online(),
-           timeout: 30_000)
-      |> Enum.map(fn {:ok, result} -> result end)
+           timeout: 30_000,
+           on_timeout: :kill_task)
+      |> Enum.flat_map(fn
+        {:ok, result}    -> [result]
+        {:exit, _reason} -> []   # task crashed or timed out — skip chunk gracefully
+      end)
       |> merge_chunk_results()
 
     conn |> put_cors_headers() |> json(merged)

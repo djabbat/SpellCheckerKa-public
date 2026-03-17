@@ -402,20 +402,24 @@ function updateStats(total, errors, foreign) {
 
 // ─── Spell check ────────────────────────────────────────────────────────
 
-// Split text into paragraphs and group into chunks of ~CHUNK_WORDS words each
-const CHUNK_WORDS = 2000
+// Files > 3 KB are split into byte-bounded chunks and processed in parallel on server
+const CHUNK_BYTES = 3072  // 3 KB
+
+function byteSize(str) {
+  return new TextEncoder().encode(str).length
+}
 
 function buildChunks(text) {
   const paragraphs = text.split(/\n+/)
   const chunks = []
-  let buf = [], bufWords = 0
+  let buf = [], bufBytes = 0
   for (const para of paragraphs) {
-    const wc = para.trim() ? para.trim().split(/\s+/).length : 0
-    if (bufWords + wc > CHUNK_WORDS && buf.length) {
+    const pb = byteSize(para)
+    if (bufBytes + pb > CHUNK_BYTES && buf.length) {
       chunks.push(buf.join("\n"))
-      buf = [para]; bufWords = wc
+      buf = [para]; bufBytes = pb
     } else {
-      buf.push(para); bufWords += wc
+      buf.push(para); bufBytes += pb
     }
   }
   if (buf.length) chunks.push(buf.join("\n"))
@@ -436,9 +440,9 @@ async function checkSpelling () {
   setStatus(t("checking", text.length.toLocaleString()) + ` <span class="spinner"></span>`)
 
   try {
-    // For large texts send as chunks (processed in parallel on server)
-    const wordCount = text.trim().split(/\s+/).length
-    const body = wordCount > CHUNK_WORDS
+    // Files > 3 KB are split into byte-bounded chunks (processed in parallel on server)
+    const textBytes = byteSize(text)
+    const body = textBytes > CHUNK_BYTES
       ? JSON.stringify({ chunks: buildChunks(text), lang: currentLang })
       : JSON.stringify({ text, lang: currentLang })
 

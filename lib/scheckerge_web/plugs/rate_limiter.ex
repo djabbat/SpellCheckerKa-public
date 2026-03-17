@@ -14,7 +14,12 @@ defmodule ScheckergeWeb.Plugs.RateLimiter do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    ip  = conn.remote_ip |> :inet.ntoa() |> to_string()
+    # Behind a reverse proxy (nginx) conn.remote_ip is always 127.0.0.1.
+    # Use X-Forwarded-For / X-Real-IP if present; fall back to remote_ip.
+    ip =
+      (get_req_header(conn, "x-real-ip") |> List.first()) ||
+      (get_req_header(conn, "x-forwarded-for") |> List.first() |> extract_first_ip()) ||
+      (:inet.ntoa(conn.remote_ip) |> to_string())
     now = System.monotonic_time(:millisecond)
 
     case check_rate(ip, now) do
@@ -48,6 +53,12 @@ defmodule ScheckergeWeb.Plugs.RateLimiter do
         :ets.insert(@table, {ip, [now]})
         :ok
     end
+  end
+
+  # "1.2.3.4, 10.0.0.1" → "1.2.3.4"
+  defp extract_first_ip(nil), do: nil
+  defp extract_first_ip(header) do
+    header |> String.split(",") |> List.first() |> String.trim()
   end
 
   @doc """

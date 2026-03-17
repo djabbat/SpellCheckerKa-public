@@ -72,9 +72,14 @@ defmodule Scheckerge.Dictionary do
         []              -> :ets.insert(@index_table, {key, [w]})
       end
 
-      # Persist — append to user_words.txt (create if absent)
+      # Persist — append to user_words.txt only if not already present
       path = Application.app_dir(:scheckerge, @user_words_path)
-      File.write(path, w <> "\n", [:append])
+      already_saved =
+        case File.read(path) do
+          {:ok, content} -> w in String.split(content, "\n", trim: true)
+          _              -> false
+        end
+      unless already_saved, do: File.write(path, w <> "\n", [:append])
 
       :ok
     else
