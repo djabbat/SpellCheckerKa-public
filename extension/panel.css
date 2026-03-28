@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   ScheckerGe — Panel UI v3
+   SpellCheckerKa — Panel UI v3
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Inline error marks (injected into page DOM) ────────────── */
@@ -83,7 +83,7 @@
 
 /* ── Panel container ────────────────────────────────────────── */
 
-#scheckerge-panel {
+#spellcheckerka-panel {
   position:      fixed;
   top:           52px;
   right:         14px;
@@ -103,13 +103,13 @@
   overflow:      hidden;
 }
 
-#scheckerge-panel.sg-hidden { display: none; }
+#spellcheckerka-panel.sg-hidden { display: none; }
 
-#scheckerge-panel.sg-collapsed #sg-chars,
-#scheckerge-panel.sg-collapsed #sg-stats,
-#scheckerge-panel.sg-collapsed #sg-acc-bar,
-#scheckerge-panel.sg-collapsed #sg-tabs,
-#scheckerge-panel.sg-collapsed #sg-body {
+#spellcheckerka-panel.sg-collapsed #sg-chars,
+#spellcheckerka-panel.sg-collapsed #sg-stats,
+#spellcheckerka-panel.sg-collapsed #sg-acc-bar,
+#spellcheckerka-panel.sg-collapsed #sg-tabs,
+#spellcheckerka-panel.sg-collapsed #sg-body {
   display: none;
 }
 
@@ -552,4 +552,4 @@
 
 /* ── Global box-sizing ──────────────────────────────────────── */
 
-#scheckerge-panel * { box-sizing: border-box; }
+#spellcheckerka-panel * { box-sizing: border-box; }

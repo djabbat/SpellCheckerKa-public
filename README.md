@@ -1,3 +1,25 @@
+# SpellCheckerKa — Georgian Spell Checker / ქართული მართლწერის შემოწმება
+
+**[English]** Real-time Georgian spell checker built with Elixir/Phoenix LiveView.
+993,589-word dictionary · Levenshtein + Georgian letter confusion table (ს↔შ, კ↔ქ, რ↔ლ) · `.docx` import/export · REST API · User dictionary · MIT License
+
+**Quick start:** `mix setup && mix phx.server` → http://localhost:4000
+
+**REST API:**
+```bash
+# Spell-check
+curl -X POST http://localhost:4000/api/check \
+  -H "Content-Type: application/json" -d '{"text": "ქართული ტექსტი"}'
+
+# Add to user dictionary
+curl -X POST http://localhost:4000/api/dictionary/add \
+  -H "Content-Type: application/json" -d '{"word": "სიტყვა"}'
+```
+
+Rate limit: 30 req/min per IP. Tests: `mix test`
+
+---
+
 # ႫႠႰႧႪႼႤႰႠ — ქართული მართლწერის შემოწმება
 
 **ႫႠႰႧႪႼႤႰႠ** არის ვებ-აპლიკაცია ქართული ტექსტების მართლწერის შემოწმებისთვის, აგებული Phoenix Framework-ზე (Elixir). მხარდაჭერა 993 589 სიტყვის ლექსიკონით, მორფოლოგიური ანალიზით და .docx ფაილების იმპორტ/ექსპორტით.
@@ -124,14 +146,14 @@ docker-compose up
 
 ```
 lib/
-├── scheckerge/
+├── spellcheckerka/
 │   ├── application.ex          OTP Application, Supervisor
 │   ├── dictionary.ex           ETS ლექსიკონი + Levenshtein სუგესტიები
 │   │                           + add_word/1 (ETS + user_words.txt)
 │   ├── morphology.ex           ქართული მორფოლოგიური ანალიზატორი
 │   └── rate_limiter_cleaner.ex Rate-limit ETS-ის გასუფთავება (5 წთ)
 │
-└── scheckerge_web/
+└── spellcheckerka_web/
     ├── router.ex               მარშრუტები
     ├── controllers/
     │   ├── page_controller.ex  GET /

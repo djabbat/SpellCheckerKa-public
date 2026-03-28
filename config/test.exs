@@ -2,13 +2,13 @@ import Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :scheckerge, ScheckergeWeb.Endpoint,
+config :spellcheckerka, SpellCheckerKaWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "yaGW5EXx01bR7VZ/gN2Lc6zXZhhXaAH4Mz7/jXaG102NwOIxBwPUSM7Hs0DudWRo",
   server: false
 
 # In test we don't send emails
-config :scheckerge, Scheckerge.Mailer, adapter: Swoosh.Adapters.Test
+config :spellcheckerka, SpellCheckerKa.Mailer, adapter: Swoosh.Adapters.Test
 
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false

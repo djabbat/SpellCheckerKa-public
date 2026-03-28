@@ -1,8 +1,8 @@
-// ScheckerGe — Service Worker (Manifest V3)
+// SpellCheckerKa — Service Worker (Manifest V3)
 // Принимает запросы от content scripts, вызывает API, возвращает результаты.
 // Extension origin обходит CORS, поэтому здесь нет ограничений.
 
-const DEFAULT_API_URL = "https://scheckerge.ge/api/check";
+const DEFAULT_API_URL = "https://spellcheckerka.drjaba.com/api/check";
 
 // ─────────────────────────────────────────────
 // Слушатель сообщений от content scripts
@@ -42,14 +42,14 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: "scheckerge-check",
-    title: "ScheckerGe: მოირტყა მართლწერა",
+    id: "spellcheckerka-check",
+    title: "SpellCheckerKa: მოირტყა მართლწერა",
     contexts: ["selection"]
   });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "scheckerge-check" && info.selectionText) {
+  if (info.menuItemId === "spellcheckerka-check" && info.selectionText) {
     checkText(info.selectionText)
       .then(result => {
         chrome.tabs.sendMessage(tab.id, {

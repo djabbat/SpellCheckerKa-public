@@ -1,9 +1,9 @@
-defmodule Scheckerge.MixProject do
+defmodule SpellCheckerKa.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :scheckerge,
+      app: :spellcheckerka,
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule Scheckerge.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Scheckerge.Application, []},
+      mod: {SpellCheckerKa.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
@@ -68,10 +68,10 @@ defmodule Scheckerge.MixProject do
     [
       setup: ["deps.get", "assets.setup", "assets.build"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["tailwind scheckerge", "esbuild scheckerge"],
+      "assets.build": ["tailwind spellcheckerka", "esbuild spellcheckerka"],
       "assets.deploy": [
-        "tailwind scheckerge --minify",
-        "esbuild scheckerge --minify",
+        "tailwind spellcheckerka --minify",
+        "esbuild spellcheckerka --minify",
         "phx.digest"
       ]
     ]

@@ -1,54 +1,54 @@
-// ScheckerGe — Google Docs Content Script
+// SpellCheckerKa — Google Docs Content Script
 // Google Docs использует сложный DOM (.kix-*).
 // Подход: плавающая панель + извлечение текста через DOM/Selection.
 
 (function () {
   "use strict";
 
-  if (document.getElementById("scheckerge-panel")) return; // уже инжектирован
+  if (document.getElementById("spellcheckerka-panel")) return; // уже инжектирован
 
   // ─────────────────────────────────────────────
   // Создать панель
   // ─────────────────────────────────────────────
 
   const panel = document.createElement("div");
-  panel.id = "scheckerge-panel";
+  panel.id = "spellcheckerka-panel";
   panel.innerHTML = `
-    <div id="scheckerge-panel-header">
-      <span>ScheckerGe ✓</span>
-      <button id="scheckerge-panel-close">✕</button>
+    <div id="spellcheckerka-panel-header">
+      <span>SpellCheckerKa ✓</span>
+      <button id="spellcheckerka-panel-close">✕</button>
     </div>
-    <div id="scheckerge-panel-stats">
-      <div class="scheckerge-stat">
-        <span class="scheckerge-stat-num" id="sg-total">—</span>
-        <span class="scheckerge-stat-label">სიტყვა</span>
+    <div id="spellcheckerka-panel-stats">
+      <div class="spellcheckerka-stat">
+        <span class="spellcheckerka-stat-num" id="sg-total">—</span>
+        <span class="spellcheckerka-stat-label">სიტყვა</span>
       </div>
-      <div class="scheckerge-stat">
-        <span class="scheckerge-stat-num" id="sg-errors">—</span>
-        <span class="scheckerge-stat-label">შეცდომა</span>
+      <div class="spellcheckerka-stat">
+        <span class="spellcheckerka-stat-num" id="sg-errors">—</span>
+        <span class="spellcheckerka-stat-label">შეცდომა</span>
       </div>
-      <div class="scheckerge-stat">
-        <span class="scheckerge-stat-num" id="sg-accuracy">—</span>
-        <span class="scheckerge-stat-label">სიზუსტე</span>
+      <div class="spellcheckerka-stat">
+        <span class="spellcheckerka-stat-num" id="sg-accuracy">—</span>
+        <span class="spellcheckerka-stat-label">სიზუსტე</span>
       </div>
     </div>
-    <div id="scheckerge-panel-body">
+    <div id="spellcheckerka-panel-body">
       <div style="padding:12px;color:#666;font-style:italic">
         Ctrl+Shift+K — შეამოწმე მართლწერა<br>
         ან მონიშნე ტექსტი → კონტექსტური მენიუ
       </div>
     </div>
-    <div id="scheckerge-panel-footer">
-      <button class="scheckerge-btn" id="sg-btn-check">✓ შემოწმება</button>
-      <button class="scheckerge-btn" id="sg-btn-sel">☰ მონიშნული</button>
+    <div id="spellcheckerka-panel-footer">
+      <button class="spellcheckerka-btn" id="sg-btn-check">✓ შემოწმება</button>
+      <button class="spellcheckerka-btn" id="sg-btn-sel">☰ მონიშნული</button>
     </div>
   `;
   document.body.appendChild(panel);
 
   // Drag
-  makeDraggable(panel, document.getElementById("scheckerge-panel-header"));
+  makeDraggable(panel, document.getElementById("spellcheckerka-panel-header"));
 
-  document.getElementById("scheckerge-panel-close").onclick = () => panel.classList.toggle("hidden");
+  document.getElementById("spellcheckerka-panel-close").onclick = () => panel.classList.toggle("hidden");
   document.getElementById("sg-btn-check").onclick = () => runCheck(extractAllText());
   document.getElementById("sg-btn-sel").onclick   = () => runCheck(extractSelectedText());
 
@@ -142,7 +142,7 @@
     document.getElementById("sg-errors").textContent   = data.error_count;
     document.getElementById("sg-accuracy").textContent = data.accuracy + "%";
 
-    const body = document.getElementById("scheckerge-panel-body");
+    const body = document.getElementById("spellcheckerka-panel-body");
 
     if (!data.errors || data.errors.length === 0) {
       body.innerHTML = `<div style="padding:12px;color:#090;font-weight:bold">✓ შეცდომები არ არის!</div>`;
@@ -150,18 +150,18 @@
     }
 
     body.innerHTML = data.errors.map(err => `
-      <div class="scheckerge-error-item">
-        <span class="scheckerge-error-word">${esc(err.word)}</span>
-        <span class="scheckerge-error-count">×${err.count}</span>
+      <div class="spellcheckerka-error-item">
+        <span class="spellcheckerka-error-word">${esc(err.word)}</span>
+        <span class="spellcheckerka-error-count">×${err.count}</span>
         ${err.suggestions.length ? `
-        <div class="scheckerge-suggestions">
-          ${err.suggestions.map(s => `<span class="scheckerge-suggestion" data-word="${esc(err.word)}" data-sug="${esc(s)}">${esc(s)}</span>`).join("")}
+        <div class="spellcheckerka-suggestions">
+          ${err.suggestions.map(s => `<span class="spellcheckerka-suggestion" data-word="${esc(err.word)}" data-sug="${esc(s)}">${esc(s)}</span>`).join("")}
         </div>` : ""}
       </div>
     `).join("");
 
     // Клик по предложению — заменить в Google Docs
-    body.querySelectorAll(".scheckerge-suggestion").forEach(btn => {
+    body.querySelectorAll(".spellcheckerka-suggestion").forEach(btn => {
       btn.addEventListener("click", () => replaceInDoc(btn.dataset.word, btn.dataset.sug));
     });
   }
@@ -187,7 +187,7 @@
   // ─────────────────────────────────────────────
 
   function showBodyMessage(msg) {
-    document.getElementById("scheckerge-panel-body").innerHTML =
+    document.getElementById("spellcheckerka-panel-body").innerHTML =
       `<div style="padding:10px;color:#333">${msg}</div>`;
   }
 

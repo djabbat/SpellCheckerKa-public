@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ScheckerGe</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>SpellCheckerKa</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 300px;
+      width: 320px;
       font-family: "Noto Sans Georgian", "Sylfaen", system-ui, sans-serif;
       font-size: 12px;
       background: #F8FAFC;
@@ -20,31 +19,128 @@
     .sg-header {
       background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
       color: #fff;
-      padding: 12px 14px 10px;
+      padding: 10px 14px 9px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
     .sg-logo-icon {
-      width: 32px;
-      height: 32px;
+      width: 30px; height: 30px;
       background: rgba(255,255,255,0.2);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      font-weight: bold;
-      flex-shrink: 0;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: bold; flex-shrink: 0;
     }
-
-    .sg-title { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; }
+    .sg-title { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
     .sg-subtitle { font-size: 10px; opacity: 0.75; margin-top: 1px; }
 
-    /* ── Body ── */
-    .sg-body { padding: 12px; }
+    /* ── Tabs ── */
+    .sg-tabs {
+      display: flex;
+      background: #fff;
+      border-bottom: 2px solid #E2E8F0;
+    }
+    .sg-tab {
+      flex: 1;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #94A3B8;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    .sg-tab:hover { color: #4F46E5; }
+    .sg-tab.active { color: #4F46E5; border-bottom-color: #4F46E5; }
 
+    /* ── Tab panels ── */
+    .sg-panel { display: none; padding: 12px; }
+    .sg-panel.active { display: block; }
+
+    /* ── Action buttons ── */
+    .sg-action-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: #fff;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      color: #1E293B;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      text-align: left;
+    }
+    .sg-action-btn:hover { background: #EEF2FF; border-color: #C7D2FE; }
+    .sg-action-btn:active { transform: scale(0.98); }
+    .sg-action-btn .btn-icon { font-size: 18px; flex-shrink: 0; }
+    .sg-action-btn .btn-label { font-weight: 600; display: block; }
+    .sg-action-btn .btn-hint { font-size: 10px; color: #94A3B8; display: block; margin-top: 1px; }
+
+    /* ── Stats bar ── */
+    .sg-stats {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .sg-stat {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #E2E8F0;
+      border-radius: 7px;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .sg-stat-num { font-size: 18px; font-weight: 700; color: #1E293B; }
+    .sg-stat-num.has-errors { color: #DC2626; }
+    .sg-stat-num.ok { color: #059669; }
+    .sg-stat-lbl { font-size: 9px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px; }
+
+    /* ── Error list ── */
+    .sg-empty {
+      text-align: center;
+      color: #94A3B8;
+      font-size: 11px;
+      padding: 20px 0;
+    }
+    .sg-error-item {
+      background: #fff;
+      border: 1px solid #FECACA;
+      border-radius: 7px;
+      padding: 8px 10px;
+      margin-bottom: 5px;
+    }
+    .sg-error-word {
+      font-weight: 700;
+      color: #DC2626;
+      font-size: 13px;
+    }
+    .sg-suggestions {
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .sg-sugg {
+      background: #ECFDF5;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .sg-sugg:hover { background: #D1FAE5; }
+
+    /* ── Settings ── */
     .sg-label {
       display: block;
       font-size: 11px;
@@ -54,7 +150,6 @@
       letter-spacing: 0.06em;
       margin-bottom: 5px;
     }
-
     .sg-input {
       width: 100%;
       padding: 7px 10px;
@@ -67,88 +162,44 @@
       transition: border-color 0.15s, box-shadow 0.15s;
       outline: none;
     }
-
     .sg-input:focus {
       border-color: #4F46E5;
       box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
     }
+    .sg-hint { margin-top: 4px; font-size: 10px; color: #94A3B8; }
 
-    .sg-hint {
-      margin-top: 4px;
-      font-size: 10px;
-      color: #94A3B8;
-    }
-
-    /* ── Buttons ── */
-    .sg-btn-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
+    .sg-btn-row { display: flex; gap: 6px; margin-top: 10px; }
     .sg-btn {
-      flex: 1;
-      padding: 7px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-family: inherit;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
+      flex: 1; padding: 7px 10px;
+      border-radius: 6px; font-size: 12px;
+      font-family: inherit; font-weight: 600;
+      cursor: pointer; border: none;
       transition: background 0.15s, transform 0.1s;
     }
-
     .sg-btn:active { transform: scale(0.97); }
-
-    .sg-btn-secondary {
-      background: #EEF2FF;
-      color: #4F46E5;
-      border: 1px solid #C7D2FE;
-    }
-
+    .sg-btn-secondary { background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; }
     .sg-btn-secondary:hover { background: #E0E7FF; }
-
-    .sg-btn-primary {
-      background: #4F46E5;
-      color: #fff;
-    }
-
+    .sg-btn-primary { background: #4F46E5; color: #fff; }
     .sg-btn-primary:hover { background: #4338CA; }
 
-    /* ── Divider ── */
-    .sg-divider {
-      border: none;
-      border-top: 1px solid #E2E8F0;
-      margin: 10px 0;
-    }
+    .sg-divider { border: none; border-top: 1px solid #E2E8F0; margin: 10px 0; }
 
-    /* ── Shortcuts ── */
-    .sg-shortcuts {
-      font-size: 11px;
-      color: #64748B;
-      line-height: 1.7;
-    }
-
+    .sg-shortcuts { font-size: 11px; color: #64748B; line-height: 1.7; }
     .sg-shortcuts kbd {
-      background: #EEF2FF;
-      color: #4F46E5;
-      border: 1px solid #C7D2FE;
-      border-radius: 4px;
-      padding: 1px 5px;
-      font-size: 10px;
-      font-family: monospace;
+      background: #EEF2FF; color: #4F46E5;
+      border: 1px solid #C7D2FE; border-radius: 4px;
+      padding: 1px 5px; font-size: 10px; font-family: monospace;
     }
 
     /* ── Status bar ── */
     #status-bar {
-      padding: 6px 12px;
-      font-size: 11px;
+      padding: 5px 12px;
+      font-size: 10px;
       border-top: 1px solid #E2E8F0;
-      min-height: 24px;
-      color: #64748B;
+      min-height: 22px;
+      color: #94A3B8;
       background: #fff;
     }
-
     .status-ok   { color: #059669; font-weight: 600; }
     .status-err  { color: #DC2626; font-weight: 600; }
     .status-info { color: #4F46E5; }
@@ -159,14 +210,70 @@
   <div class="sg-header">
     <div class="sg-logo-icon">S</div>
     <div>
-      <div class="sg-title">ScheckerGe</div>
+      <div class="sg-title">SpellCheckerKa</div>
       <div class="sg-subtitle">ქართული მართლწერის შემოწმება</div>
     </div>
   </div>
 
-  <div class="sg-body">
+  <!-- Tabs -->
+  <div class="sg-tabs">
+    <div class="sg-tab active" data-tab="check">✏️ შემოწმება</div>
+    <div class="sg-tab" data-tab="results">📋 შედეგები</div>
+    <div class="sg-tab" data-tab="settings">⚙️ პარამეტრები</div>
+  </div>
+
+  <!-- Panel: Check -->
+  <div class="sg-panel active" id="panel-check">
+    <button class="sg-action-btn" id="btn-check-field">
+      <span class="btn-icon">✏️</span>
+      <span>
+        <span class="btn-label">მიმდინარე ველის შემოწმება</span>
+        <span class="btn-hint">სადაც კურსორია — შეამოწმე იქ</span>
+      </span>
+    </button>
+
+    <button class="sg-action-btn" id="btn-check-selection">
+      <span class="btn-icon">🔍</span>
+      <span>
+        <span class="btn-label">მონიშნული ტექსტის შემოწმება</span>
+        <span class="btn-hint">გამოკვეთილი ტექსტი გვერდზე</span>
+      </span>
+    </button>
+
+    <button class="sg-action-btn" id="btn-check-page">
+      <span class="btn-icon">📄</span>
+      <span>
+        <span class="btn-label">გვერდის ყველა ტექსტი</span>
+        <span class="btn-hint">ყველა ქართული ტექსტი ამ გვერდზე</span>
+      </span>
+    </button>
+  </div>
+
+  <!-- Panel: Results -->
+  <div class="sg-panel" id="panel-results">
+    <div class="sg-stats">
+      <div class="sg-stat">
+        <div class="sg-stat-num" id="stat-words">—</div>
+        <div class="sg-stat-lbl">სიტყვა</div>
+      </div>
+      <div class="sg-stat">
+        <div class="sg-stat-num" id="stat-errors">—</div>
+        <div class="sg-stat-lbl">შეცდომა</div>
+      </div>
+      <div class="sg-stat">
+        <div class="sg-stat-num" id="stat-accuracy">—</div>
+        <div class="sg-stat-lbl">სიზუსტე</div>
+      </div>
+    </div>
+    <div id="error-list">
+      <div class="sg-empty">შემოწმება ჯერ არ ჩატარებულა</div>
+    </div>
+  </div>
+
+  <!-- Panel: Settings -->
+  <div class="sg-panel" id="panel-settings">
     <label class="sg-label" for="server-url">სერვერის URL</label>
-    <input class="sg-input" type="text" id="server-url" placeholder="https://scheckerge.ge/api/check">
+    <input class="sg-input" type="text" id="server-url" placeholder="https://spellcheckerka.drjaba.com/api/check">
     <div class="sg-hint">ლოკალური: http://localhost:4000/api/check</div>
 
     <div class="sg-btn-row">

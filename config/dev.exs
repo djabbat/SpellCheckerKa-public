@@ -6,17 +6,18 @@ import Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :scheckerge, ScheckergeWeb.Endpoint,
+config :spellcheckerka, SpellCheckerKaWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
+  url: [host: "spellcheckerka.drjaba.com"],
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "m4jc+remf19ohim4n4r8paO0C+OAfz/VllevYxBhocZFvWptnHlULY2ih1lQQ8we",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:scheckerge, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:scheckerge, ~w(--watch)]}
+    esbuild: {Esbuild, :install_and_run, [:spellcheckerka, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:spellcheckerka, ~w(--watch)]}
   ]
 
 # ## SSL Support
@@ -43,17 +44,17 @@ config :scheckerge, ScheckergeWeb.Endpoint,
 # different ports.
 
 # Watch static and templates for browser reloading.
-config :scheckerge, ScheckergeWeb.Endpoint,
+config :spellcheckerka, SpellCheckerKaWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/scheckerge_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/spellcheckerka_web/(controllers|live|components)/.*(ex|heex)$"
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :scheckerge, dev_routes: true
+config :spellcheckerka, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"

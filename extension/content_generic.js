@@ -1,4 +1,4 @@
-// ScheckerGe — Content Script v3
+// SpellCheckerKa — Content Script v3
 // Inline red-underline highlights + tooltip popup + no cursor-loss corrections.
 
 (function () {
@@ -8,7 +8,7 @@
   //  Constants
   // ══════════════════════════════════════════════════════════════════
 
-  const PANEL_ID   = "scheckerge-panel";
+  const PANEL_ID   = "spellcheckerka-panel";
   const TIP_ID     = "sg-tip";
   const MARK       = "sg-err-mark";
   const CHUNK_MAX  = 30_000;
@@ -75,7 +75,7 @@
         <div id="sg-brand">
           <span id="sg-brand-mark">S</span>
           <div>
-            <div id="sg-brand-name">ScheckerGe</div>
+            <div id="sg-brand-name">SpellCheckerKa</div>
             <div id="sg-brand-sub">ქართული მართლწერა</div>
           </div>
         </div>
